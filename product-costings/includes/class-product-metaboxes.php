@@ -103,6 +103,18 @@ class PC_Product_Metaboxes {
                 <button type="button" id="pc-add-row" class="button button-primary">
                     <?php esc_html_e( '+ Add Ingredient', 'product-costings' ); ?>
                 </button>
+                <button type="button" id="pc-refresh-meta" class="button">
+                    <?php esc_html_e( '↻ Refresh Ingredient Data', 'product-costings' ); ?>
+                </button>
+                <span id="pc-refresh-status"></span>
+            </p>
+
+            <div id="pc-formula-warnings"></div>
+
+            <p style="margin-top:12px;">
+                <label for="pc-version-note"><strong><?php esc_html_e( 'Version note', 'product-costings' ); ?></strong></label>
+                <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:60%;">
+                <span class="description"><?php esc_html_e( 'Saved with the automatic formula version when this formula changes.', 'product-costings' ); ?></span>
             </p>
         </div>
 
@@ -166,8 +178,22 @@ class PC_Product_Metaboxes {
         $moq       = isset( $row['moq'] ) ? $row['moq'] : '';
         $nat_orig  = isset( $row['natural_origin'] ) ? $row['natural_origin'] : '';
         $is_to_100 = isset( $row['is_to_100'] ) ? (bool) $row['is_to_100'] : false;
+
+        // Live data for guardrails + stale-price detection.
+        $usage_min = '';
+        $usage_max = '';
+        $stale     = false;
+        $cur_price = '';
+        if ( $trade_id ) {
+            $usage_min = PC_Trade_Data::get( $trade_id, 'usage_min' );
+            $usage_max = PC_Trade_Data::get( $trade_id, 'usage_max' );
+            $cur_price = PC_Trade_Data::get( $trade_id, 'price_per_kg' );
+            if ( '' !== $price && '' !== $cur_price && abs( floatval( $price ) - floatval( $cur_price ) ) > 0.0001 ) {
+                $stale = true;
+            }
+        }
         ?>
-        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>">
+        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>" data-usage-min="<?php echo esc_attr( $usage_min ); ?>" data-usage-max="<?php echo esc_attr( $usage_max ); ?>">
             <td class="pc-col-sort pc-drag-handle">&#9776;</td>
             <td class="pc-col-to100">
                 <input type="checkbox" name="pc_rows[<?php echo (int) $i; ?>][is_to_100]" value="1" class="pc-field-to100" <?php checked( $is_to_100 ); ?>>
@@ -202,6 +228,9 @@ class PC_Product_Metaboxes {
             </td>
             <td class="pc-col-price">
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][price_per_kg]" value="<?php echo esc_attr( $price ); ?>" class="pc-field-price" readonly>
+                <?php if ( $stale ) : ?>
+                    <span class="pc-stale-badge" title="<?php echo esc_attr( sprintf( __( 'Current Trade Name price is %s — use Refresh Ingredient Data to update.', 'product-costings' ), $cur_price ) ); ?>">!</span>
+                <?php endif; ?>
             </td>
             <td class="pc-col-moq">
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][moq]" value="<?php echo esc_attr( $moq ); ?>" class="pc-field-moq" readonly>
@@ -256,6 +285,14 @@ class PC_Product_Metaboxes {
                     <td id="pc-cost-unit">&mdash;</td>
                 </tr>
             </table>
+
+            <h4><?php esc_html_e( 'Cost Drivers', 'product-costings' ); ?></h4>
+            <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (before MOQ purchasing effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
+            <div id="pc-cost-drivers"><em><?php esc_html_e( 'Add ingredients with prices to see the breakdown.', 'product-costings' ); ?></em></div>
+
+            <h4><?php esc_html_e( 'Batch Size Sweet Spot', 'product-costings' ); ?></h4>
+            <p class="description"><?php esc_html_e( 'Cost per unit at different batch sizes. Because ingredient purchasing rounds up to MOQ multiples, unit cost is not linear — this shows where the cliffs are. Assumes labour, facility and misc costs are fixed per batch.', 'product-costings' ); ?></p>
+            <div id="pc-sweet-spot"><em><?php esc_html_e( 'Requires Batch Size and Unit Size to be set.', 'product-costings' ); ?></em></div>
         </div>
         <?php
     }

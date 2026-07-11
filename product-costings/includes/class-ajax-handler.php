@@ -102,45 +102,15 @@ class PC_Ajax_Handler {
             wp_send_json_error( 'Invalid trade name.' );
         }
 
-        // Try multiple meta key variants for each field.
-        $ph           = $this->get_meta_value( $post_id, array(
-            'ph-range', 'ph_range', '_ph_range', 'pH_range', 'ph', '_ph', 'pH',
-        ) );
-        $price_per_kg = $this->get_meta_value( $post_id, array(
-            'tn_price_per_kg', 'price_per_kg', '_price_per_kg', 'price_kg', '_price_kg', 'price',
-        ) );
-        $moq          = $this->get_meta_value( $post_id, array(
-            'tn_moq', 'moq', '_moq', 'MOQ', '_MOQ',
-        ) );
-        $function1    = $this->get_meta_value( $post_id, array(
-            'function1', '_function1', 'function', '_function',
-        ) );
-        $natural_origin = $this->get_meta_value( $post_id, array(
-            '-natural-origin', '_-natural-origin',
-            'natural-origin', '_natural-origin',
-            'natural_origin', '_natural_origin',
-        ) );
-
         wp_send_json_success( array(
-            'ph'             => $ph,
-            'price_per_kg'   => $price_per_kg,
-            'moq'            => $moq,
-            'function1'      => $function1,
-            'natural_origin' => $natural_origin,
+            'ph'             => PC_Trade_Data::get( $post_id, 'ph' ),
+            'price_per_kg'   => PC_Trade_Data::get( $post_id, 'price_per_kg' ),
+            'moq'            => PC_Trade_Data::get( $post_id, 'moq' ),
+            'function1'      => PC_Trade_Data::get( $post_id, 'function1' ),
+            'natural_origin' => PC_Trade_Data::get( $post_id, 'natural_origin' ),
+            'usage_min'      => PC_Trade_Data::get( $post_id, 'usage_min' ),
+            'usage_max'      => PC_Trade_Data::get( $post_id, 'usage_max' ),
             'title'          => get_the_title( $post_id ),
         ) );
-    }
-
-    /**
-     * Try multiple meta key variants and return the first non-empty value.
-     */
-    private function get_meta_value( $post_id, $keys ) {
-        foreach ( $keys as $key ) {
-            $val = get_post_meta( $post_id, $key, true );
-            if ( '' !== $val && null !== $val && false !== $val ) {
-                return $val;
-            }
-        }
-        return '';
     }
 }

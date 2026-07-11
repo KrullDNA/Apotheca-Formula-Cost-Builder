@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Product Costings
  * Description: Cosmetic product formula builder and costing calculator. Adds formula ingredients repeater to Products CPT, pulling data from Trade Names CPT.
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: KrullDNA
  * Text Domain: product-costings
  */
@@ -13,11 +13,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'PC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'PC_VERSION', '1.0.1' );
+define( 'PC_VERSION', '1.1.0' );
 
+require_once PC_PLUGIN_DIR . 'includes/class-trade-data.php';
+require_once PC_PLUGIN_DIR . 'includes/class-costing-calculator.php';
 require_once PC_PLUGIN_DIR . 'includes/class-formula-functions.php';
 require_once PC_PLUGIN_DIR . 'includes/class-product-metaboxes.php';
 require_once PC_PLUGIN_DIR . 'includes/class-ajax-handler.php';
+require_once PC_PLUGIN_DIR . 'includes/class-trade-name-fields.php';
+require_once PC_PLUGIN_DIR . 'includes/class-inci.php';
+require_once PC_PLUGIN_DIR . 'includes/class-batch-sheet.php';
+require_once PC_PLUGIN_DIR . 'includes/class-margin-dashboard.php';
+require_once PC_PLUGIN_DIR . 'includes/class-versions.php';
 require_once PC_PLUGIN_DIR . 'includes/class-elementor-widget.php';
 
 /**
@@ -42,6 +49,11 @@ final class Product_Costings {
         PC_Formula_Functions::instance();
         PC_Product_Metaboxes::instance();
         PC_Ajax_Handler::instance();
+        PC_Trade_Name_Fields::instance();
+        PC_INCI::instance();
+        PC_Batch_Sheet::instance();
+        PC_Margin_Dashboard::instance();
+        PC_Versions::instance();
     }
 
     /**
@@ -58,11 +70,12 @@ final class Product_Costings {
     public function enqueue_admin_assets( $hook ) {
         global $post_type;
 
-        // Load on product edit screens and our settings page.
+        // Load on product / trade name edit screens and our admin pages.
         $is_product_screen = in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && 'products' === $post_type;
-        $is_settings_page  = 'products_page_pc-formula-functions' === $hook;
+        $is_trade_screen   = in_array( $hook, array( 'post.php', 'post-new.php' ), true ) && 'trade-names' === $post_type;
+        $is_settings_page  = in_array( $hook, array( 'products_page_pc-formula-functions', 'products_page_pc-costings-dashboard' ), true );
 
-        if ( ! $is_product_screen && ! $is_settings_page ) {
+        if ( ! $is_product_screen && ! $is_trade_screen && ! $is_settings_page ) {
             return;
         }
 

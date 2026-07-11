@@ -12,6 +12,7 @@
             this.bindEvents();
             this.recalcTo100();
             this.recalcCostSummary();
+            this.recalcWarnings();
         },
 
         cacheElements: function () {
@@ -124,7 +125,7 @@
         /**
          * Fetch meta from a Trade Name post and populate the row fields.
          */
-        fetchTradeMeta: function (postId, $row) {
+        fetchTradeMeta: function (postId, $row, done) {
             $.ajax({
                 url: pcData.ajaxUrl,
                 data: { action: 'pc_get_trade_name_meta', nonce: pcData.nonce, post_id: postId },
@@ -135,6 +136,13 @@
                         $row.find('.pc-field-moq').val(res.data.moq || '');
                         $row.find('.pc-field-natural-origin').val(res.data.natural_origin || '');
 
+                        // Usage limits for live guardrail warnings.
+                        $row.attr('data-usage-min', res.data.usage_min || '');
+                        $row.attr('data-usage-max', res.data.usage_max || '');
+
+                        // A fresh fetch is by definition not stale.
+                        $row.find('.pc-stale-badge').remove();
+
                         // Pre-select function if trade name has one.
                         if (res.data.function1) {
                             var $fnSelect = $row.find('.pc-field-function');
@@ -144,7 +152,12 @@
                         }
 
                         PC.recalcCostSummary();
+                        PC.recalcWarnings();
                     }
+                    if (done) done(res);
+                },
+                error: function () {
+                    if (done) done(null);
                 }
             });
         },
@@ -236,6 +249,82 @@
             this.$wrap.on('input change', '.pc-field-ww', function () {
                 self.recalcTo100();
                 self.recalcCostSummary();
+                self.recalcWarnings();
+            });
+
+            // Re-check warnings when a Function is picked (preservative check).
+            this.$wrap.on('change', '.pc-field-function', function () {
+                self.recalcWarnings();
+            });
+
+            // Re-check the pH window when the product's target pH changes.
+            $(document).on('input change',
+                '#acf-field_final_ph, input[name="final_ph"], [data-name="final_ph"] input',
+                function () {
+                    self.recalcWarnings();
+                }
+            );
+
+            // Refresh all ingredient data from Trade Names.
+            $('#pc-refresh-meta').on('click', function () {
+                self.refreshAllRows();
+            });
+
+            // Formula version compare / restore.
+            $(document).on('click', '.pc-version-compare', function () {
+                var index   = $(this).data('index');
+                var $detail = $('#pc-version-detail-' + index);
+                var $cell   = $detail.find('.pc-version-detail-cell');
+
+                if ($detail.is(':visible')) {
+                    $detail.hide();
+                    return;
+                }
+
+                $cell.html('<em>Loading…</em>');
+                $detail.show();
+
+                $.ajax({
+                    url: pcData.ajaxUrl,
+                    data: {
+                        action: 'pc_version_compare',
+                        nonce: pcData.nonce,
+                        post_id: $('#post_ID').val(),
+                        index: index
+                    },
+                    success: function (res) {
+                        $cell.html(res.success ? res.data : '<em>Could not load comparison.</em>');
+                    },
+                    error: function () {
+                        $cell.html('<em>Could not load comparison.</em>');
+                    }
+                });
+            });
+
+            $(document).on('click', '.pc-version-restore', function () {
+                if (!window.confirm('Restore this formula version? The current saved formula will be snapshotted first, then replaced. The page will reload.')) {
+                    return;
+                }
+                $.ajax({
+                    url: pcData.ajaxUrl,
+                    method: 'POST',
+                    data: {
+                        action: 'pc_version_restore',
+                        nonce: pcData.nonce,
+                        post_id: $('#post_ID').val(),
+                        index: $(this).data('index')
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            window.location.reload();
+                        } else {
+                            window.alert('Restore failed: ' + (res.data || 'unknown error'));
+                        }
+                    },
+                    error: function () {
+                        window.alert('Restore failed: request error.');
+                    }
+                });
             });
 
             // Recalc cost summary when existing CPT meta fields change.
@@ -412,6 +501,296 @@
             $('#pc-units-batch').text(unitsPerBatch > 0 ? unitsPerBatch : '—');
             $('#pc-batch-cost').text(totalBatchCost > 0 ? currency + totalBatchCost.toFixed(2) : '—');
             $('#pc-cost-unit').text(costPerUnit > 0 ? currency + costPerUnit.toFixed(4) : '—');
+
+            this.renderCostDrivers(currency);
+            this.renderSweetSpot(currency, wastePct);
+        },
+
+        /* ──────────────────────────────
+         * Row data snapshot for insight panels
+         * ────────────────────────────── */
+        getRowData: function () {
+            var rows = [];
+            this.$body.find('.pc-row').each(function () {
+                var $r = $(this);
+                var name = $r.find('.pc-trade-search').val() ||
+                           $r.find('.pc-field-trade-name option:selected').text() || '';
+                if (name === '— Select —') { name = ''; }
+                rows.push({
+                    $row: $r,
+                    name: name || '(unnamed)',
+                    phase: ($r.find('.pc-field-phase').val() || '').toUpperCase(),
+                    ww: parseFloat($r.find('.pc-field-ww').val()) || 0,
+                    price: parseFloat($r.find('.pc-field-price').val()) || 0,
+                    moq: parseFloat($r.find('.pc-field-moq').val()) || 0,
+                    ph: $r.find('.pc-field-ph').val() || '',
+                    fn: $r.find('.pc-field-function').val() || '',
+                    usageMin: parseFloat($r.attr('data-usage-min')),
+                    usageMax: parseFloat($r.attr('data-usage-max'))
+                });
+            });
+            return rows;
+        },
+
+        /* ──────────────────────────────
+         * Cost Drivers: % of weight vs % of raw material cost
+         * ────────────────────────────── */
+        renderCostDrivers: function (currency) {
+            var $box = $('#pc-cost-drivers');
+            if (!$box.length) return;
+
+            var rows = this.getRowData().filter(function (r) { return r.ww > 0; });
+            var totalWw = 0, totalCost = 0;
+
+            rows.forEach(function (r) {
+                r.costPerKg = (r.ww / 100) * r.price;
+                totalWw   += r.ww;
+                totalCost += r.costPerKg;
+            });
+
+            if (!rows.length || totalCost <= 0) {
+                $box.html('<em>Add ingredients with prices to see the breakdown.</em>');
+                return;
+            }
+
+            rows.sort(function (a, b) { return b.costPerKg - a.costPerKg; });
+
+            var html = '<table class="pc-drivers-table"><thead><tr>' +
+                '<th>Ingredient</th><th>% of weight</th><th>% of cost</th><th class="pc-driver-bars">Weight vs Cost</th>' +
+                '</tr></thead><tbody>';
+
+            rows.forEach(function (r) {
+                var wSharePct = totalWw > 0 ? (r.ww / totalWw) * 100 : 0;
+                var cSharePct = (r.costPerKg / totalCost) * 100;
+                html += '<tr>' +
+                    '<td>' + $('<span>').text(r.name).html() + '</td>' +
+                    '<td>' + wSharePct.toFixed(1) + '%</td>' +
+                    '<td><strong>' + cSharePct.toFixed(1) + '%</strong></td>' +
+                    '<td class="pc-driver-bars">' +
+                        '<div class="pc-bar pc-bar-weight" style="width:' + Math.min(100, wSharePct).toFixed(1) + '%;"></div>' +
+                        '<div class="pc-bar pc-bar-cost" style="width:' + Math.min(100, cSharePct).toFixed(1) + '%;"></div>' +
+                    '</td></tr>';
+            });
+
+            html += '</tbody></table>' +
+                '<p class="description"><span class="pc-bar-key pc-bar-weight"></span> % of formula weight ' +
+                '&nbsp; <span class="pc-bar-key pc-bar-cost"></span> % of raw material cost</p>';
+
+            $box.html(html);
+        },
+
+        /* ──────────────────────────────
+         * Batch Size Sweet Spot: unit cost at candidate batch sizes
+         * ────────────────────────────── */
+        renderSweetSpot: function (currency, wastePct) {
+            var $box = $('#pc-sweet-spot');
+            if (!$box.length) return;
+
+            var batchSize = this.getFieldValue('batch_size');
+            var unitSize  = this.getFieldValue('unit_size');
+            if (batchSize <= 0 || unitSize <= 0) {
+                $box.html('<em>Requires Batch Size and Unit Size to be set.</em>');
+                return;
+            }
+
+            var labour            = this.getFieldValue('labour');
+            var facilityCosts     = this.getFieldValue('facility_running_costs');
+            var miscCosts         = this.getFieldValue('misc_costs');
+            var packagingUnitCost = this.getFieldValue('packaging_unit_cost');
+            var rows              = this.getRowData();
+
+            var multipliers = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
+            var results = [];
+            var best = null;
+
+            multipliers.forEach(function (mult) {
+                var size      = batchSize * mult;
+                var sizeWaste = size * (1 + wastePct / 100);
+                var units     = Math.floor((size * 1000) / unitSize);
+                if (units <= 0) return;
+
+                var ingCost = 0;
+                rows.forEach(function (r) {
+                    var kgNeeded = (r.ww / 100) * sizeWaste;
+                    if (kgNeeded <= 0 || r.price <= 0) return;
+                    var kgBuy = r.moq > 0 ? Math.ceil(kgNeeded / r.moq) * r.moq : kgNeeded;
+                    ingCost += kgBuy * r.price;
+                });
+
+                var total    = ingCost + labour + facilityCosts + miscCosts + (packagingUnitCost * units);
+                var unitCost = total / units;
+
+                var entry = { mult: mult, size: size, units: units, unitCost: unitCost };
+                results.push(entry);
+                if (!best || unitCost < best.unitCost) best = entry;
+            });
+
+            if (!results.length) {
+                $box.html('<em>Requires Batch Size and Unit Size to be set.</em>');
+                return;
+            }
+
+            var maxCost = Math.max.apply(null, results.map(function (r) { return r.unitCost; }));
+
+            var html = '<table class="pc-sweetspot-table"><thead><tr>' +
+                '<th>Batch size</th><th>Units</th><th>Cost / unit</th><th class="pc-driver-bars"></th>' +
+                '</tr></thead><tbody>';
+
+            results.forEach(function (r) {
+                var isBest    = best && r === best;
+                var isCurrent = r.mult === 1;
+                html += '<tr class="' + (isBest ? 'pc-sweet-best' : '') + '">' +
+                    '<td>' + r.size.toFixed(2) + ' kg' + (isCurrent ? ' <em>(current)</em>' : '') + '</td>' +
+                    '<td>' + r.units + '</td>' +
+                    '<td><strong>' + currency + r.unitCost.toFixed(3) + '</strong>' + (isBest ? ' ★' : '') + '</td>' +
+                    '<td class="pc-driver-bars"><div class="pc-bar pc-bar-cost" style="width:' +
+                        (maxCost > 0 ? Math.min(100, (r.unitCost / maxCost) * 100).toFixed(1) : 0) + '%;"></div></td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody></table>';
+            $box.html(html);
+        },
+
+        /* ──────────────────────────────
+         * Refresh all ingredient data from Trade Names
+         * ────────────────────────────── */
+        refreshAllRows: function () {
+            var self    = this;
+            var $status = $('#pc-refresh-status');
+            var $rows   = this.$body.find('.pc-row').filter(function () {
+                return $(this).find('.pc-field-trade-name').val();
+            });
+
+            if (!$rows.length) {
+                $status.text('No ingredients to refresh.');
+                return;
+            }
+
+            var pending = $rows.length;
+            var changed = 0;
+            $status.text('Refreshing…');
+
+            $rows.each(function () {
+                var $row     = $(this);
+                var id       = $row.find('.pc-field-trade-name').val();
+                var oldPrice = $row.find('.pc-field-price').val();
+
+                self.fetchTradeMeta(id, $row, function (res) {
+                    if (res && res.success && String($row.find('.pc-field-price').val()) !== String(oldPrice)) {
+                        changed++;
+                        $row.find('.pc-field-price').addClass('pc-flash');
+                        setTimeout(function () { $row.find('.pc-field-price').removeClass('pc-flash'); }, 2500);
+                    }
+                    pending--;
+                    if (pending === 0) {
+                        $status.text('Done — ' + changed + ' price' + (changed === 1 ? '' : 's') + ' changed. Save the product to store the new values.');
+                        self.recalcCostSummary();
+                        self.recalcWarnings();
+                    }
+                });
+            });
+        },
+
+        /* ──────────────────────────────
+         * Formulation guardrails
+         * ────────────────────────────── */
+        parsePh: function (str) {
+            if (!str) return null;
+            var m = String(str).match(/\d+(\.\d+)?/g);
+            if (!m || !m.length) return null;
+            var nums = m.map(parseFloat);
+            return [Math.min.apply(null, nums), Math.max.apply(null, nums)];
+        },
+
+        recalcWarnings: function () {
+            var $box = $('#pc-formula-warnings');
+            if (!$box.length) return;
+
+            var rows = this.getRowData();
+            var warnings = [];
+            var infos = [];
+
+            if (!rows.length) {
+                $box.empty();
+                return;
+            }
+
+            // Total must be 100%.
+            var total = 0;
+            rows.forEach(function (r) { total += r.ww; });
+            if (Math.abs(total - 100) > 0.01) {
+                warnings.push('Formula total is ' + total.toFixed(2) + '% — it should be 100%.');
+                this.$total.addClass('pc-total-bad').removeClass('pc-total-ok');
+            } else {
+                this.$total.addClass('pc-total-ok').removeClass('pc-total-bad');
+            }
+
+            // Usage-rate limits.
+            rows.forEach(function (r) {
+                r.$row.removeClass('pc-row-warning');
+                if (r.ww <= 0) return;
+                if (!isNaN(r.usageMax) && r.usageMax > 0 && r.ww > r.usageMax) {
+                    warnings.push(r.name + ' is at ' + r.ww + '% — above its maximum usage rate of ' + r.usageMax + '%.');
+                    r.$row.addClass('pc-row-warning');
+                }
+                if (!isNaN(r.usageMin) && r.usageMin > 0 && r.ww < r.usageMin) {
+                    warnings.push(r.name + ' is at ' + r.ww + '% — below its minimum effective usage rate of ' + r.usageMin + '%.');
+                    r.$row.addClass('pc-row-warning');
+                }
+            });
+
+            // Preservative present?
+            var hasPreservative = rows.some(function (r) {
+                return /preserv/i.test(r.fn);
+            });
+            if (!hasPreservative) {
+                warnings.push('No ingredient has the Function "Preservative" — confirm this formula is self-preserving or anhydrous.');
+            }
+
+            // pH compatibility window.
+            var self = this;
+            var win = null;
+            var winValid = true;
+            rows.forEach(function (r) {
+                var range = self.parsePh(r.ph);
+                if (!range) return;
+                if (!win) {
+                    win = range.slice();
+                } else {
+                    win[0] = Math.max(win[0], range[0]);
+                    win[1] = Math.min(win[1], range[1]);
+                }
+            });
+            if (win) {
+                if (win[0] > win[1]) {
+                    winValid = false;
+                    warnings.push('Ingredient pH ranges do not overlap — there is no pH at which every ingredient is within its stated range.');
+                } else {
+                    infos.push('Formula pH compatibility window: ' + win[0].toFixed(1) + ' – ' + win[1].toFixed(1) + '.');
+                    var targetPh = this.getFieldValue('final_ph');
+                    if (targetPh > 0 && (targetPh < win[0] || targetPh > win[1])) {
+                        warnings.push('Target final pH ' + targetPh + ' is outside the compatibility window ' + win[0].toFixed(1) + ' – ' + win[1].toFixed(1) + '.');
+                    }
+                }
+            }
+
+            var html = '';
+            if (warnings.length) {
+                html += '<ul class="pc-warning-list">';
+                warnings.forEach(function (w) {
+                    html += '<li>' + $('<span>').text(w).html() + '</li>';
+                });
+                html += '</ul>';
+            }
+            if (infos.length && winValid) {
+                html += '<ul class="pc-info-list">';
+                infos.forEach(function (i) {
+                    html += '<li>' + $('<span>').text(i).html() + '</li>';
+                });
+                html += '</ul>';
+            }
+            $box.html(html);
         }
     };
 
