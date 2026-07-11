@@ -1,0 +1,280 @@
+/* ───────────────────────────────────────
+ * Product Costings – Admin Styles
+ * ─────────────────────────────────────── */
+
+/* Formula Table */
+.pc-formula-table {
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.pc-formula-table th,
+.pc-formula-table td {
+    padding: 8px 6px;
+    vertical-align: middle;
+}
+
+.pc-formula-table thead th {
+    background: #23282d !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Metabox title bar — ensure Formula Ingredients heading is readable */
+#pc_formula_ingredients .hndle,
+#pc_formula_ingredients .hndle span {
+    color: #23282d;
+}
+
+.pc-formula-table tbody tr {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.pc-formula-table tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.pc-formula-table tbody tr:hover {
+    background: #f0f6fc;
+}
+
+.pc-formula-table tfoot td {
+    background: #f1f1f1;
+    font-size: 13px;
+}
+
+/* Column widths */
+.pc-col-sort   { width: 30px; text-align: center; }
+.pc-col-to100  { width: 55px; text-align: center; }
+.pc-col-phase  { width: 70px; }
+.pc-col-ww     { width: 100px; }
+.pc-col-trade  { min-width: 180px; }
+.pc-col-function { min-width: 150px; }
+.pc-col-ph     { width: 90px; }
+.pc-col-price  { width: 100px; }
+.pc-col-moq    { width: 80px; }
+.pc-col-actions { width: 80px; white-space: nowrap; }
+
+/* To-100% checkbox */
+.pc-col-to100 input[type="checkbox"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Inputs inside table */
+.pc-formula-table input[type="text"],
+.pc-formula-table input[type="number"],
+.pc-formula-table select {
+    width: 100%;
+    margin: 0;
+    padding: 4px 6px;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.pc-formula-table input[readonly] {
+    background: #f5f5f5;
+    color: #666;
+    border-color: #ddd;
+}
+
+/* Drag handle */
+.pc-drag-handle {
+    cursor: grab;
+    font-size: 18px;
+    color: #aaa;
+    user-select: none;
+}
+
+.pc-drag-handle:hover {
+    color: #0073aa;
+}
+
+.pc-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Sortable placeholder */
+.pc-sortable-placeholder {
+    height: 42px;
+    background: #e8f0fe !important;
+    border: 2px dashed #4285f4 !important;
+}
+
+/* To-100% row highlight */
+.pc-row-to100 {
+    background: #fff8e1 !important;
+}
+
+.pc-to100-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    background: #0073aa;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 3px;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+/* Action buttons */
+.pc-col-actions .button {
+    padding: 2px 6px;
+    min-height: 28px;
+    font-size: 14px;
+    line-height: 1;
+    margin-right: 2px;
+}
+
+/* Trade Name autocomplete */
+.pc-trade-search-wrap {
+    position: relative;
+}
+
+.pc-trade-search {
+    width: 100% !important;
+    padding: 4px 6px !important;
+    font-size: 13px !important;
+}
+
+.pc-trade-results {
+    display: none;
+    position: absolute;
+    z-index: 999;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-top: none;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.pc-trade-results li {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.pc-trade-results li:hover {
+    background: #0073aa;
+    color: #fff;
+}
+
+.pc-trade-results li.pc-no-results {
+    color: #999;
+    cursor: default;
+    font-style: italic;
+}
+
+.pc-trade-results li.pc-no-results:hover {
+    background: #fff;
+    color: #999;
+}
+
+/* Costing meta box */
+.pc-costing-table th {
+    width: 250px;
+    font-weight: 600;
+}
+
+.pc-costing-table input {
+    width: 200px;
+}
+
+/* Cost Summary */
+.pc-cost-summary {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px;
+}
+
+.pc-cost-summary h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.pc-cost-summary table {
+    border-collapse: collapse;
+}
+
+.pc-cost-summary th {
+    text-align: left;
+    padding: 6px 12px;
+    font-weight: 600;
+    width: 250px;
+}
+
+.pc-cost-summary td {
+    padding: 6px 12px;
+    font-weight: 700;
+    color: #0073aa;
+}
+
+/* Formula Functions settings page */
+.pc-functions-wrap {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pc-functions-list {
+    flex: 1;
+    min-width: 400px;
+}
+
+.pc-functions-add {
+    flex: 0 0 300px;
+}
+
+.pc-functions-add input[type="text"] {
+    width: 100%;
+}
+
+/* Responsive */
+@media screen and (max-width: 1200px) {
+    .pc-formula-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+@media screen and (max-width: 782px) {
+    .pc-functions-wrap {
+        flex-direction: column;
+    }
+
+    .pc-functions-list,
+    .pc-functions-add {
+        min-width: 100%;
+    }
+
+    .pc-costing-table th {
+        width: auto;
+    }
+}
+
+/* Total label */
+.pc-total-label {
+    text-align: right;
+    padding-right: 12px !important;
+}
