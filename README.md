@@ -50,6 +50,13 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.1.2
+- Central **currency symbol** setting (Costings Dashboard) used by the admin Cost
+  Summary, dashboard, and as the default for the Elementor costing widgets.
+- **Auto-detect existing INCI fields** on Trade Names (`inci`, `inci_name`, etc.) as
+  a fallback for the INCI generator, with pre-fill in the Formulation Data metabox.
+- **Delete button** on Formula Versions.
+
 ### 1.1.1
 - New **INCI Ingredients List** Elementor widget — front-end display of the
   auto-generated INCI declaration for product page templates, with inline/list

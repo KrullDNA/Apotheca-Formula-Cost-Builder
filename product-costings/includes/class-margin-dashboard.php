@@ -51,12 +51,18 @@ class PC_Margin_Dashboard {
         $target = isset( $_POST['pc_target_margin'] ) ? floatval( wp_unslash( $_POST['pc_target_margin'] ) ) : 50;
         update_option( self::TARGET_OPTION, max( 0, min( 100, $target ) ) );
 
+        if ( isset( $_POST['pc_currency_symbol'] ) ) {
+            $symbol = sanitize_text_field( wp_unslash( $_POST['pc_currency_symbol'] ) );
+            update_option( 'pc_currency_symbol', '' !== $symbol ? $symbol : '$' );
+        }
+
         wp_safe_redirect( admin_url( 'edit.php?post_type=products&page=pc-costings-dashboard&updated=1' ) );
         exit;
     }
 
     public function render_page() {
-        $target = floatval( get_option( self::TARGET_OPTION, 50 ) );
+        $target   = floatval( get_option( self::TARGET_OPTION, 50 ) );
+        $currency = get_option( 'pc_currency_symbol', '$' );
 
         $products = get_posts( array(
             'post_type'      => 'products',
@@ -81,7 +87,13 @@ class PC_Margin_Dashboard {
                     <strong><?php esc_html_e( 'Target margin %', 'product-costings' ); ?></strong>
                     <input type="number" name="pc_target_margin" value="<?php echo esc_attr( $target ); ?>" step="0.5" min="0" max="100" style="width:80px;">
                 </label>
+                &nbsp;&nbsp;
+                <label>
+                    <strong><?php esc_html_e( 'Currency symbol', 'product-costings' ); ?></strong>
+                    <input type="text" name="pc_currency_symbol" value="<?php echo esc_attr( $currency ); ?>" maxlength="5" style="width:60px;">
+                </label>
                 <button type="submit" class="button"><?php esc_html_e( 'Save', 'product-costings' ); ?></button>
+                <span class="description" style="margin-left:8px;"><?php esc_html_e( 'The currency symbol is used across the admin Cost Summary, this dashboard, and as the default for the Elementor widgets.', 'product-costings' ); ?></span>
             </form>
 
             <?php if ( empty( $products ) ) : ?>
@@ -124,13 +136,13 @@ class PC_Margin_Dashboard {
                                 <?php if ( ! $has_formula || $unit_cost <= 0 ) : ?>
                                     <td colspan="7"><em><?php esc_html_e( 'No formula / costing data', 'product-costings' ); ?></em></td>
                                 <?php else : ?>
-                                    <td><?php echo esc_html( number_format( $unit_cost, 2 ) ); ?></td>
-                                    <td><?php echo $m['my_cost_price'] > 0 ? esc_html( number_format( $m['my_cost_price'], 2 ) ) : '&mdash;'; ?></td>
-                                    <td><?php echo $m['wholesale_price'] > 0 ? esc_html( number_format( $m['wholesale_price'], 2 ) ) : '&mdash;'; ?></td>
+                                    <td><?php echo esc_html( $currency . number_format( $unit_cost, 2 ) ); ?></td>
+                                    <td><?php echo $m['my_cost_price'] > 0 ? esc_html( $currency . number_format( $m['my_cost_price'], 2 ) ) : '&mdash;'; ?></td>
+                                    <td><?php echo $m['wholesale_price'] > 0 ? esc_html( $currency . number_format( $m['wholesale_price'], 2 ) ) : '&mdash;'; ?></td>
                                     <td class="<?php echo ( null !== $w_margin && $w_margin < $target ) ? 'pc-margin-low' : ''; ?>">
                                         <?php echo null !== $w_margin ? esc_html( number_format( $w_margin, 1 ) . '%' ) : '&mdash;'; ?>
                                     </td>
-                                    <td><?php echo $m['rrp'] > 0 ? esc_html( number_format( $m['rrp'], 2 ) ) : '&mdash;'; ?></td>
+                                    <td><?php echo $m['rrp'] > 0 ? esc_html( $currency . number_format( $m['rrp'], 2 ) ) : '&mdash;'; ?></td>
                                     <td class="<?php echo ( null !== $r_margin && $r_margin < $target ) ? 'pc-margin-low' : ''; ?>">
                                         <?php echo null !== $r_margin ? esc_html( number_format( $r_margin, 1 ) . '%' ) : '&mdash;'; ?>
                                     </td>
@@ -148,7 +160,7 @@ class PC_Margin_Dashboard {
                     </tbody>
                 </table>
                 <p class="description">
-                    <?php esc_html_e( 'Margin = (price − unit cost) ÷ price. Values are in your store currency. Open a product flagged Stale and use "Refresh Ingredient Data" in the Formula Ingredients box to pull current prices.', 'product-costings' ); ?>
+                    <?php esc_html_e( 'Margin = (price − unit cost) ÷ price. Open a product flagged Stale and use "Refresh Ingredient Data" in the Formula Ingredients box to pull current prices.', 'product-costings' ); ?>
                 </p>
             <?php endif; ?>
         </div>

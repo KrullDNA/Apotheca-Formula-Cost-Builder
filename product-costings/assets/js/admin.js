@@ -301,6 +301,34 @@
                 });
             });
 
+            $(document).on('click', '.pc-version-delete', function () {
+                if (!window.confirm('Delete this formula version? This cannot be undone.')) {
+                    return;
+                }
+                var $btn = $(this);
+                $.ajax({
+                    url: pcData.ajaxUrl,
+                    method: 'POST',
+                    data: {
+                        action: 'pc_version_delete',
+                        nonce: pcData.nonce,
+                        post_id: $('#post_ID').val(),
+                        index: $btn.data('index')
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            // Reload so the remaining versions renumber correctly.
+                            window.location.reload();
+                        } else {
+                            window.alert('Delete failed: ' + (res.data || 'unknown error'));
+                        }
+                    },
+                    error: function () {
+                        window.alert('Delete failed: request error.');
+                    }
+                });
+            });
+
             $(document).on('click', '.pc-version-restore', function () {
                 if (!window.confirm('Restore this formula version? The current saved formula will be snapshotted first, then replaced. The page will reload.')) {
                     return;
@@ -444,7 +472,7 @@
          *   packaging_unit_cost, packaging_units_per_batch, unit_size
          * ────────────────────────────── */
         recalcCostSummary: function () {
-            var currency = '£';
+            var currency = (window.pcData && pcData.currency) ? pcData.currency : '$';
 
             // Raw material cost per KG = sum of (percent_w_w / 100 * price_per_kg).
             var rawCostPerKg = 0;

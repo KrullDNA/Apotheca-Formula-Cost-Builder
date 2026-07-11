@@ -31,6 +31,7 @@ class PC_Versions {
         add_action( 'add_meta_boxes', array( $this, 'register_metabox' ) );
         add_action( 'wp_ajax_pc_version_compare', array( $this, 'ajax_compare' ) );
         add_action( 'wp_ajax_pc_version_restore', array( $this, 'ajax_restore' ) );
+        add_action( 'wp_ajax_pc_version_delete', array( $this, 'ajax_delete' ) );
     }
 
     /* ───────────────────────────────────────────────
@@ -151,6 +152,7 @@ class PC_Versions {
                         <td>
                             <button type="button" class="button button-small pc-version-compare" data-index="<?php echo (int) $idx; ?>"><?php esc_html_e( 'Compare', 'product-costings' ); ?></button>
                             <button type="button" class="button button-small pc-version-restore" data-index="<?php echo (int) $idx; ?>"><?php esc_html_e( 'Restore', 'product-costings' ); ?></button>
+                            <button type="button" class="button button-small pc-version-delete" data-index="<?php echo (int) $idx; ?>" title="<?php esc_attr_e( 'Delete this version', 'product-costings' ); ?>">&#128465;</button>
                         </td>
                     </tr>
                     <tr class="pc-version-detail" id="pc-version-detail-<?php echo (int) $idx; ?>" style="display:none;">
@@ -313,6 +315,31 @@ class PC_Versions {
 
         update_post_meta( $post_id, '_pc_formula_rows', $versions[ $index ]['rows'] );
         $this->append_version( $post_id, $versions[ $index ]['rows'], sprintf( __( 'Restored version #%d', 'product-costings' ), $index + 1 ) );
+
+        wp_send_json_success();
+    }
+
+    /* ───────────────────────────────────────────────
+     * AJAX: delete
+     * ─────────────────────────────────────────────── */
+
+    public function ajax_delete() {
+        check_ajax_referer( 'pc_nonce', 'nonce' );
+
+        $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $index   = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : 0;
+
+        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+            wp_send_json_error( 'Insufficient permissions.' );
+        }
+
+        $versions = $this->get_versions( $post_id );
+        if ( ! isset( $versions[ $index ] ) ) {
+            wp_send_json_error( 'Unknown version.' );
+        }
+
+        unset( $versions[ $index ] );
+        update_post_meta( $post_id, self::META_KEY, array_values( $versions ) );
 
         wp_send_json_success();
     }
