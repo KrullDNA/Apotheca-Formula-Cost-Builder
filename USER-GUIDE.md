@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.1.0)
+# Product Costings — User Guide (v1.1.1)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -168,6 +168,9 @@ declarations against your CPSR (declare > 0.001% leave-on / > 0.01% rinse-off).
 
 The box updates when the product is **saved** (it reads the saved formula).
 
+To show the declaration on the **front end** of your site, use the **INCI Ingredients
+List** Elementor widget — see §9.
+
 ---
 
 ## 6. Formula Versions (on the product edit screen) *(new)*
@@ -231,9 +234,22 @@ above:
 - **Batch Costings** — pick any of 17 metrics (batch cost, final unit cost,
   wholesale, RRP, % natural origin, …) with label overrides, currency symbol, and
   full styling controls.
+- **INCI Ingredients List** *(new in 1.1.1)* — the auto-generated INCI declaration
+  as a front-end "Ingredients" section for your product page template. Options:
+  - **Heading** text (blank to hide), **inline** (comma-separated label style) or
+    **bulleted list** format, and an **UPPERCASE** toggle.
+  - **Emphasise fragrance allergens** — style the EU allergens in italic/bold and a
+    custom colour.
+  - Full typography and colour controls for heading, text, and allergens.
+  - Shows nothing to visitors when INCI data is missing (set an optional Empty
+    Message if you prefer); in the Elementor editor it shows a completeness notice
+    listing any Trade Names still missing INCI data — visitors never see that notice.
+  - Percentages are never shown on the front end — names only, in the correct order.
 
-Both take an optional Product ID (blank = current product) and a Waste % setting —
-keep it equal to the product's Waste % for identical front/back numbers.
+All three take an optional Product ID (blank = current product). Use it on a single
+product template so each product shows its own data. The two costing widgets also
+have a Waste % setting — keep it equal to the product's Waste % for identical
+front/back numbers.
 
 ---
 

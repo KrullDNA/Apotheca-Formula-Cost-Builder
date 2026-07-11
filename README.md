@@ -23,7 +23,8 @@ product-costings/                  Plugin source
 │   ├── class-versions.php             Formula version snapshots, compare, restore
 │   ├── class-elementor-widget.php     Elementor widget registration
 │   ├── widget-formula-table.php       Elementor widget: Formula Ingredients Table
-│   └── widget-batch-costings.php      Elementor widget: Batch Costings
+│   ├── widget-batch-costings.php      Elementor widget: Batch Costings
+│   └── widget-inci-list.php           Elementor widget: INCI Ingredients List
 └── assets/
     ├── js/admin.js                    Repeater UI, autocomplete, live cost summary,
     │                                  guardrails, insight panels, versions UI
@@ -48,6 +49,11 @@ zip -r Apotheca-product-costings-<version>.zip product-costings
 Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
+
+### 1.1.1
+- New **INCI Ingredients List** Elementor widget — front-end display of the
+  auto-generated INCI declaration for product page templates, with inline/list
+  format, uppercase option, allergen emphasis, and full styling controls.
 
 ### 1.1.0
 - **INCI Label Declaration** — auto-generated from formula rows + per-Trade-Name INCI
