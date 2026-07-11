@@ -278,3 +278,160 @@
     text-align: right;
     padding-right: 12px !important;
 }
+
+/* ───────────────────────────────────────
+ * v1.1.0 — Guardrails, insight panels, versions
+ * ─────────────────────────────────────── */
+
+/* Formula warnings */
+#pc-formula-warnings { margin-top: 10px; }
+
+.pc-warning-list {
+    margin: 8px 0;
+    padding: 10px 14px 10px 30px;
+    background: #fcf0f1;
+    border-left: 4px solid #d63638;
+    list-style: disc;
+}
+
+.pc-warning-list li { margin: 2px 0; color: #8a1f21; }
+
+.pc-info-list {
+    margin: 8px 0;
+    padding: 10px 14px 10px 30px;
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    list-style: disc;
+}
+
+.pc-info-list li { margin: 2px 0; color: #1d4e75; }
+
+.pc-formula-table tbody tr.pc-row-warning,
+.pc-formula-table tbody tr.pc-row-warning:nth-child(even) {
+    background: #fcf0f1;
+}
+
+#pc-total-ww.pc-total-ok strong { color: #007017; }
+#pc-total-ww.pc-total-bad strong { color: #d63638; }
+
+/* Stale price badge */
+.pc-stale-badge {
+    display: inline-block;
+    margin-left: 4px;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 50%;
+    background: #d63638;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: help;
+}
+
+/* Refresh flash */
+.pc-flash {
+    background: #fff8c5 !important;
+    transition: background 0.4s ease;
+}
+
+#pc-refresh-status { margin-left: 8px; color: #555; font-style: italic; }
+
+/* Cost drivers + sweet spot */
+.pc-drivers-table,
+.pc-sweetspot-table {
+    width: 100%;
+    max-width: 760px;
+    border-collapse: collapse;
+    margin: 6px 0 14px;
+}
+
+.pc-drivers-table th, .pc-drivers-table td,
+.pc-sweetspot-table th, .pc-sweetspot-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: left;
+    font-size: 12px;
+}
+
+.pc-driver-bars { width: 40%; min-width: 180px; }
+
+.pc-bar {
+    height: 7px;
+    border-radius: 3px;
+    margin: 2px 0;
+    min-width: 2px;
+}
+
+.pc-bar-weight { background: #2271b1; }
+.pc-bar-cost   { background: #d63638; }
+
+.pc-bar-key {
+    display: inline-block;
+    width: 22px;
+    height: 8px;
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+.pc-sweetspot-table tr.pc-sweet-best td {
+    background: #edfaef;
+    font-weight: 600;
+}
+
+/* INCI declaration */
+.pc-inci-list { margin: 8px 0 12px 20px; }
+.pc-inci-list li { margin: 2px 0; }
+.pc-inci-pct { color: #777; font-size: 11px; }
+
+.pc-inci-allergen {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 3px;
+    background: #d63638;
+    color: #fff;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.pc-inci-divider {
+    list-style: none;
+    color: #777;
+    font-style: italic;
+    margin: 6px 0 !important;
+}
+
+.pc-inci-missing {
+    padding: 2px 12px;
+    background: #fcf6e5;
+    border-left: 4px solid #dba617;
+    margin-bottom: 10px;
+}
+
+/* Versions */
+.pc-delta-up   { color: #d63638; font-weight: 600; }
+.pc-delta-down { color: #007017; font-weight: 600; }
+
+.pc-version-detail-cell { background: #f9f9f9; padding: 14px 18px; }
+
+.pc-diff-added   { color: #007017; font-weight: 600; }
+.pc-diff-removed { color: #d63638; font-weight: 600; }
+.pc-diff-changed { color: #996800; font-weight: 600; }
+
+/* Costings dashboard */
+.pc-dashboard-table td.pc-margin-low {
+    background: #fcf0f1;
+    color: #8a1f21;
+    font-weight: 700;
+}
+
+.pc-stale-flag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 3px;
+    background: #d63638;
+    color: #fff;
+    font-size: 11px;
+}

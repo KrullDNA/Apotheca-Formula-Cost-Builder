@@ -351,7 +351,7 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
             return;
         }
 
-        $batch_size_raw = $this->get_product_meta_value( $product_id, 'batch_size' );
+        $batch_size_raw = PC_Costing_Calculator::get_product_meta_value( $product_id, 'batch_size' );
         $waste_pct      = isset( $settings['waste_percent'] ) ? floatval( $settings['waste_percent'] ) : 2;
         $batch_size     = $batch_size_raw * ( 1 + $waste_pct / 100 );
         $currency       = $settings['currency_symbol'];
@@ -459,26 +459,4 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
         return $rows;
     }
 
-    /**
-     * Try to read a product meta value from common key patterns.
-     */
-    private function get_product_meta_value( $post_id, $field ) {
-        $variants = array( $field, '_' . $field );
-
-        foreach ( $variants as $key ) {
-            $val = get_post_meta( $post_id, $key, true );
-            if ( '' !== $val && null !== $val && false !== $val ) {
-                return floatval( $val );
-            }
-        }
-
-        if ( function_exists( 'get_field' ) ) {
-            $val = get_field( $field, $post_id );
-            if ( $val ) {
-                return floatval( $val );
-            }
-        }
-
-        return 0;
-    }
 }
