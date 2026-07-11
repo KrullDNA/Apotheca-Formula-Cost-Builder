@@ -1,0 +1,479 @@
+<?php
+/**
+ * Elementor Widget – Batch Costings.
+ *
+ * Displays calculated costing metrics for a product batch.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
+
+    public function get_name() {
+        return 'pc_batch_costings';
+    }
+
+    public function get_title() {
+        return esc_html__( 'Batch Costings', 'product-costings' );
+    }
+
+    public function get_icon() {
+        return 'eicon-price-list';
+    }
+
+    public function get_categories() {
+        return array( 'general' );
+    }
+
+    public function get_keywords() {
+        return array( 'batch', 'costing', 'cost', 'price', 'formula', 'product' );
+    }
+
+    public function get_style_depends() {
+        return array( 'pc-batch-costings-front' );
+    }
+
+    /**
+     * Available calculation definitions.
+     */
+    private function get_metric_options() {
+        return array(
+            'batch_cost'                  => 'Batch Cost',
+            'total_cost_per_kg'           => 'Total Cost/Kg',
+            'total_packaging_units'       => 'Total Packaging Units',
+            'single_product_ingredients'  => 'Single Product Ingredients Cost',
+            'packaging_cost_per_batch'    => 'Packaging Cost per Batch',
+            'final_batch_cost'            => 'Final Batch Cost',
+            'final_unit_cost'             => 'Final Unit Cost',
+            'my_cost_price'               => 'My Cost Price',
+            'wholesale_price'             => 'Wholesale Price',
+            'rrp'                         => 'RRP',
+            'packaging_unit_cost'         => 'Packaging Unit Cost',
+            'labour'                      => 'Labour',
+            'facility_running_costs'      => 'Facility Running Costs',
+            'misc_costs'                  => 'Misc Costs',
+            'batch_size'                  => 'Batch Size',
+            'batch_size_with_waste'       => 'Batch Size with Waste',
+            'natural_origin'              => '% Natural Origin',
+        );
+    }
+
+    /* ─────────────────────────────────────
+     * Controls
+     * ───────────────────────────────────── */
+
+    protected function register_controls() {
+
+        /* ── Content ── */
+        $this->start_controls_section( 'section_content', array(
+            'label' => esc_html__( 'Content', 'product-costings' ),
+        ) );
+
+        $this->add_control( 'product_id', array(
+            'label'       => esc_html__( 'Product', 'product-costings' ),
+            'type'        => \Elementor\Controls_Manager::TEXT,
+            'description' => esc_html__( 'Leave blank to use the current product. Or enter a Product post ID.', 'product-costings' ),
+            'default'     => '',
+        ) );
+
+        $this->add_control( 'metrics', array(
+            'label'       => esc_html__( 'Calculations to Display', 'product-costings' ),
+            'type'        => \Elementor\Controls_Manager::SELECT2,
+            'multiple'    => true,
+            'options'     => $this->get_metric_options(),
+            'default'     => array( 'batch_cost', 'final_batch_cost', 'final_unit_cost' ),
+            'description' => esc_html__( 'Select which costing calculations to show.', 'product-costings' ),
+        ) );
+
+        $this->add_control( 'currency_symbol', array(
+            'label'   => esc_html__( 'Currency Symbol', 'product-costings' ),
+            'type'    => \Elementor\Controls_Manager::TEXT,
+            'default' => '$',
+        ) );
+
+        $this->add_control( 'prefix_text', array(
+            'label'       => esc_html__( 'Value Prefix Text', 'product-costings' ),
+            'type'        => \Elementor\Controls_Manager::TEXT,
+            'description' => esc_html__( 'Text displayed before the dollar figure (e.g. "AUD" or "Approx.").', 'product-costings' ),
+            'default'     => '',
+        ) );
+
+        $this->add_control( 'waste_percent', array(
+            'label'       => esc_html__( 'Waste %', 'product-costings' ),
+            'type'        => \Elementor\Controls_Manager::NUMBER,
+            'description' => esc_html__( 'Manufacturing waste allowance added to batch size (e.g. 2 for 2%).', 'product-costings' ),
+            'default'     => 2,
+            'min'         => 0,
+            'max'         => 50,
+            'step'        => 0.5,
+        ) );
+
+        $this->add_control( 'label_overrides_heading', array(
+            'label'     => esc_html__( 'Label Overrides', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ) );
+
+        foreach ( $this->get_metric_options() as $key => $default_label ) {
+            $this->add_control( 'label_' . $key, array(
+                'label'       => $default_label,
+                'type'        => \Elementor\Controls_Manager::TEXT,
+                'default'     => '',
+                'placeholder' => $default_label,
+                'description' => sprintf( esc_html__( 'Leave blank to use "%s".', 'product-costings' ), $default_label ),
+            ) );
+        }
+
+        $this->end_controls_section();
+
+        /* ── Style: Layout ── */
+        $this->start_controls_section( 'section_style_layout', array(
+            'label' => esc_html__( 'Layout', 'product-costings' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+        ) );
+
+        $this->add_control( 'item_bg_color', array(
+            'label'     => esc_html__( 'Row Background', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#ffffff',
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-item' => 'background-color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_control( 'item_alt_bg_color', array(
+            'label'     => esc_html__( 'Alternate Row Background', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#f9f9f9',
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-item:nth-child(even)' => 'background-color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_control( 'item_border_color', array(
+            'label'     => esc_html__( 'Divider Color', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#e5e5e5',
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-item' => 'border-bottom-color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_responsive_control( 'item_padding', array(
+            'label'      => esc_html__( 'Row Padding', 'product-costings' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => array( 'px', 'em' ),
+            'default'    => array(
+                'top'    => '14',
+                'right'  => '20',
+                'bottom' => '14',
+                'left'   => '20',
+                'unit'   => 'px',
+            ),
+            'selectors'  => array(
+                '{{WRAPPER}} .pc-bc-item' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+            ),
+        ) );
+
+        $this->add_group_control( \Elementor\Group_Control_Border::get_type(), array(
+            'name'     => 'wrapper_border',
+            'label'    => esc_html__( 'Container Border', 'product-costings' ),
+            'selector' => '{{WRAPPER}} .pc-bc',
+        ) );
+
+        $this->add_control( 'wrapper_border_radius', array(
+            'label'      => esc_html__( 'Border Radius', 'product-costings' ),
+            'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+            'size_units' => array( 'px' ),
+            'selectors'  => array(
+                '{{WRAPPER}} .pc-bc' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}}; overflow: hidden;',
+            ),
+        ) );
+
+        $this->add_group_control( \Elementor\Group_Control_Box_Shadow::get_type(), array(
+            'name'     => 'wrapper_box_shadow',
+            'label'    => esc_html__( 'Box Shadow', 'product-costings' ),
+            'selector' => '{{WRAPPER}} .pc-bc',
+        ) );
+
+        $this->end_controls_section();
+
+        /* ── Style: Label ── */
+        $this->start_controls_section( 'section_style_label', array(
+            'label' => esc_html__( 'Label', 'product-costings' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+        ) );
+
+        $this->add_control( 'label_color', array(
+            'label'     => esc_html__( 'Color', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#1a1a1a',
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-label' => 'color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+            'name'     => 'label_typography',
+            'label'    => esc_html__( 'Typography', 'product-costings' ),
+            'selector' => '{{WRAPPER}} .pc-bc-label',
+        ) );
+
+        $this->end_controls_section();
+
+        /* ── Style: Value ── */
+        $this->start_controls_section( 'section_style_value', array(
+            'label' => esc_html__( 'Value', 'product-costings' ),
+            'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+        ) );
+
+        $this->add_control( 'value_color', array(
+            'label'     => esc_html__( 'Color', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'default'   => '#1a1a1a',
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-value' => 'color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+            'name'     => 'value_typography',
+            'label'    => esc_html__( 'Typography', 'product-costings' ),
+            'selector' => '{{WRAPPER}} .pc-bc-value',
+        ) );
+
+        /* ── Style: Prefix ── */
+        $this->add_control( 'prefix_heading', array(
+            'label'     => esc_html__( 'Prefix Text', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::HEADING,
+            'separator' => 'before',
+        ) );
+
+        $this->add_control( 'prefix_color', array(
+            'label'     => esc_html__( 'Prefix Color', 'product-costings' ),
+            'type'      => \Elementor\Controls_Manager::COLOR,
+            'selectors' => array(
+                '{{WRAPPER}} .pc-bc-prefix' => 'color: {{VALUE}};',
+            ),
+        ) );
+
+        $this->add_group_control( \Elementor\Group_Control_Typography::get_type(), array(
+            'name'     => 'prefix_typography',
+            'label'    => esc_html__( 'Prefix Typography', 'product-costings' ),
+            'selector' => '{{WRAPPER}} .pc-bc-prefix',
+        ) );
+
+        $this->end_controls_section();
+    }
+
+    /* ─────────────────────────────────────
+     * Render
+     * ───────────────────────────────────── */
+
+    protected function render() {
+        $settings = $this->get_settings_for_display();
+
+        $product_id = ! empty( $settings['product_id'] ) ? absint( $settings['product_id'] ) : get_the_ID();
+
+        if ( ! $product_id || 'products' !== get_post_type( $product_id ) ) {
+            if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
+                echo '<p style="padding:20px;text-align:center;color:#999;">' . esc_html__( 'Batch Costings — please view on a Products post or enter a Product ID.', 'product-costings' ) . '</p>';
+            }
+            return;
+        }
+
+        $selected = ! empty( $settings['metrics'] ) ? $settings['metrics'] : array();
+        if ( empty( $selected ) ) {
+            return;
+        }
+
+        $currency   = $settings['currency_symbol'];
+        $prefix     = $settings['prefix_text'];
+        $waste_pct  = isset( $settings['waste_percent'] ) ? floatval( $settings['waste_percent'] ) : 2;
+
+        // Gather data.
+        $values = $this->calculate_metrics( $product_id, $waste_pct );
+        $labels = $this->get_metric_options();
+
+        // Determine which metrics are currency vs. plain number.
+        $non_currency    = array( 'total_packaging_units', 'batch_size', 'batch_size_with_waste', 'natural_origin' );
+        $whole_number    = array( 'total_packaging_units' );
+        $kg_suffix       = array( 'batch_size', 'batch_size_with_waste' );
+        $percent_suffix  = array( 'natural_origin' );
+
+        echo '<div class="pc-bc">';
+
+        foreach ( $selected as $key ) {
+            if ( ! isset( $values[ $key ] ) || ! isset( $labels[ $key ] ) ) {
+                continue;
+            }
+
+            $raw      = $values[ $key ];
+            $override = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
+            $label    = '' !== $override ? $override : $labels[ $key ];
+
+            if ( in_array( $key, $kg_suffix, true ) ) {
+                $formatted = number_format( $raw, 0 ) . ' kg';
+            } elseif ( in_array( $key, $whole_number, true ) ) {
+                $formatted = number_format( $raw, 0 );
+            } elseif ( in_array( $key, $percent_suffix, true ) ) {
+                $formatted = number_format( $raw, 2 ) . '%';
+            } elseif ( in_array( $key, $non_currency, true ) ) {
+                $formatted = number_format( $raw, 2 );
+            } else {
+                $formatted = $currency . number_format( $raw, 2 );
+            }
+
+            echo '<div class="pc-bc-item">';
+            echo '<span class="pc-bc-label">' . esc_html( $label ) . '</span>';
+            echo '<span class="pc-bc-value">';
+            if ( '' !== $prefix ) {
+                echo '<span class="pc-bc-prefix">' . esc_html( $prefix ) . ' </span>';
+            }
+            echo esc_html( $formatted );
+            echo '</span>';
+            echo '</div>';
+        }
+
+        echo '</div>';
+    }
+
+    /**
+     * Run all costing calculations for a product.
+     */
+    private function calculate_metrics( $product_id, $waste_pct ) {
+
+        // Base data.
+        $batch_size_raw = $this->get_product_meta_value( $product_id, 'batch_size' );
+        $batch_size     = $batch_size_raw * ( 1 + $waste_pct / 100 );
+        $unit_size      = $this->get_product_meta_value( $product_id, 'unit_size' ); // grams or ml.
+        $labour         = $this->get_product_meta_value( $product_id, 'labour' );
+        $facility       = $this->get_product_meta_value( $product_id, 'facility_running_costs' );
+        $misc           = $this->get_product_meta_value( $product_id, 'misc_costs' );
+        $pkg_unit_cost  = $this->get_product_meta_value( $product_id, 'packaging_unit_cost' );
+        $cost_price_mul = $this->get_product_meta_value( $product_id, 'cost_price' );
+        $wholesale_mul  = $this->get_product_meta_value( $product_id, 'wholesale' );
+        $rrp_mul        = $this->get_product_meta_value( $product_id, 'rrp' );
+
+        // Formula rows.
+        $rows = get_post_meta( $product_id, '_pc_formula_rows', true );
+        if ( ! is_array( $rows ) ) {
+            $rows = array();
+        }
+
+        // ── Total Packaging Units ──
+        // Uses base batch size (without waste), unit_size is in grams/ml.
+        // Convert unit_size to kg: unit_size / 1000.
+        $pkg_volume_kg       = $unit_size > 0 ? $unit_size / 1000 : 0;
+        $total_packaging_units = $pkg_volume_kg > 0 ? floor( $batch_size_raw / $pkg_volume_kg ) : 0;
+
+        // ── Batch Cost ──
+        // For each ingredient: round up kg_per_batch to next MOQ multiple, then multiply by price/kg.
+        $batch_cost = 0;
+        foreach ( $rows as $row ) {
+            $ww    = isset( $row['percent_w_w'] ) ? floatval( $row['percent_w_w'] ) : 0;
+            $price = isset( $row['price_per_kg'] ) ? floatval( $row['price_per_kg'] ) : 0;
+            $moq   = isset( $row['moq'] ) ? floatval( $row['moq'] ) : 0;
+
+            $kg_needed = $batch_size > 0 ? ( $ww / 100 ) * $batch_size : 0;
+
+            if ( $kg_needed <= 0 || $price <= 0 ) {
+                continue;
+            }
+
+            if ( $moq > 0 ) {
+                // Round up to next MOQ multiple.
+                $kg_to_purchase = ceil( $kg_needed / $moq ) * $moq;
+            } else {
+                $kg_to_purchase = $kg_needed;
+            }
+
+            $batch_cost += $kg_to_purchase * $price;
+        }
+
+        // ── Total Cost/Kg ──
+        $total_cost_per_kg = $batch_size > 0 ? $batch_cost / $batch_size : 0;
+
+        // ── Single Product Ingredients Cost ──
+        $single_product_ingredients = $total_packaging_units > 0 ? $batch_cost / $total_packaging_units : 0;
+
+        // ── Packaging Cost per Batch ──
+        $packaging_cost_per_batch = $pkg_unit_cost * $total_packaging_units;
+
+        // ── Final Batch Cost ──
+        $final_batch_cost = $batch_cost + $labour + $facility + $misc + $packaging_cost_per_batch;
+
+        // ── Final Unit Cost ──
+        $final_unit_cost = $total_packaging_units > 0 ? $final_batch_cost / $total_packaging_units : 0;
+
+        // ── My Cost Price ──
+        $my_cost_price = $final_unit_cost * $cost_price_mul;
+
+        // ── Wholesale Price ──
+        $wholesale_price = $final_unit_cost * $wholesale_mul;
+
+        // ── RRP ──
+        $rrp_value = ceil( $final_unit_cost * $rrp_mul );
+
+        // ── % Natural Origin ──
+        // Weighted average: sum( %w/w × natural-origin ) / sum( %w/w ).
+        $nat_weighted_sum = 0;
+        $nat_ww_sum       = 0;
+        foreach ( $rows as $row ) {
+            $ww      = isset( $row['percent_w_w'] ) ? floatval( $row['percent_w_w'] ) : 0;
+            $nat_val = isset( $row['natural_origin'] ) ? floatval( $row['natural_origin'] ) : 0;
+            if ( $ww <= 0 ) {
+                continue;
+            }
+            $nat_weighted_sum += $ww * $nat_val;
+            $nat_ww_sum       += $ww;
+        }
+        $natural_origin = $nat_ww_sum > 0 ? $nat_weighted_sum / $nat_ww_sum : 0;
+
+        return array(
+            'batch_cost'                 => $batch_cost,
+            'total_cost_per_kg'          => $total_cost_per_kg,
+            'total_packaging_units'      => $total_packaging_units,
+            'single_product_ingredients' => $single_product_ingredients,
+            'packaging_cost_per_batch'   => $packaging_cost_per_batch,
+            'final_batch_cost'           => $final_batch_cost,
+            'final_unit_cost'            => $final_unit_cost,
+            'my_cost_price'              => $my_cost_price,
+            'wholesale_price'            => $wholesale_price,
+            'rrp'                        => $rrp_value,
+            'packaging_unit_cost'        => $pkg_unit_cost,
+            'labour'                     => $labour,
+            'facility_running_costs'     => $facility,
+            'misc_costs'                 => $misc,
+            'batch_size'                 => $batch_size_raw,
+            'batch_size_with_waste'      => $batch_size,
+            'natural_origin'             => $natural_origin,
+        );
+    }
+
+    /**
+     * Try to read a product meta value from common key patterns.
+     */
+    private function get_product_meta_value( $post_id, $field ) {
+        $variants = array( $field, '_' . $field );
+
+        foreach ( $variants as $key ) {
+            $val = get_post_meta( $post_id, $key, true );
+            if ( '' !== $val && null !== $val && false !== $val ) {
+                return floatval( $val );
+            }
+        }
+
+        if ( function_exists( 'get_field' ) ) {
+            $val = get_field( $field, $post_id );
+            if ( $val ) {
+                return floatval( $val );
+            }
+        }
+
+        return 0;
+    }
+
+}

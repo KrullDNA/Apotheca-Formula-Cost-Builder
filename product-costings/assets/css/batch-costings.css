@@ -1,0 +1,54 @@
+/* ───────────────────────────────────────
+ * Batch Costings Widget – Front-end
+ * ─────────────────────────────────────── */
+
+.pc-bc {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.pc-bc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.pc-bc-item:last-child {
+    border-bottom: none;
+}
+
+.pc-bc-label {
+    font-weight: 600;
+    font-size: 15px;
+    color: #1a1a1a;
+}
+
+.pc-bc-value {
+    font-weight: 700;
+    font-size: 15px;
+    color: #1a1a1a;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.pc-bc-prefix {
+    font-weight: 400;
+    margin-right: 2px;
+}
+
+/* ── Responsive ── */
+@media screen and (max-width: 480px) {
+    .pc-bc-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px 16px;
+    }
+
+    .pc-bc-value {
+        text-align: left;
+    }
+}
