@@ -134,9 +134,16 @@ class PC_Trade_Data {
     /**
      * Split a raw INCI string into its individual INCI names.
      *
-     * Handles the standard blend separators used on supplier documentation:
-     * "(and)", the bare word "and", "&", plus commas, semicolons and slashes.
-     * Case-insensitive; extra whitespace is trimmed.
+     * Splits only on genuine blend connectors: "(and)", the standalone word
+     * "and", "&", ";", and a comma *followed by whitespace*. It deliberately
+     * does NOT split on:
+     *   - "/"     — part of names like "Acrylates/C10-30 Alkyl Acrylate
+     *               Crosspolymer" or "PEG-8/SMDI Copolymer".
+     *   - a comma with no following space — part of names like
+     *               "1,2-Hexanediol" or "2-Bromo-2-Nitropropane-1,3-Diol".
+     *   - parenthetical qualifiers — "Simmondsia Chinensis (Jojoba) Seed Oil"
+     *               (only the literal "(and)" is a separator).
+     * Case-insensitive; surrounding whitespace is trimmed.
      *
      * @param string $string Raw INCI text (single name or blend).
      * @return string[] Individual INCI names.
@@ -145,7 +152,7 @@ class PC_Trade_Data {
         $string = wp_strip_all_tags( (string) $string );
 
         $parts = preg_split(
-            '/\s*(?:\(\s*and\s*\)|&|\+|[,;\/]|\band\b)\s*/i',
+            '/\s*\(\s*and\s*\)\s*|\s*&\s*|\s*;\s*|\s+and\s+|\s*,\s+/i',
             $string,
             -1,
             PREG_SPLIT_NO_EMPTY
