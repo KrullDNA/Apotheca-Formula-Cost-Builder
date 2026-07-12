@@ -108,12 +108,14 @@ class PC_INCI {
             }
 
             foreach ( $composition as $comp ) {
-                $norm = strtolower( trim( $comp['inci'] ) );
+                // Merge INCI synonyms (Water/Aqua/Eau, …) so they total as one line.
+                $canonical    = self::canonicalize_inci( trim( $comp['inci'] ) );
+                $norm         = $canonical['key'];
                 $contribution = $ww * ( $comp['percent'] / 100 );
 
                 if ( ! isset( $totals[ $norm ] ) ) {
                     $totals[ $norm ]  = 0;
-                    $display[ $norm ] = trim( $comp['inci'] );
+                    $display[ $norm ] = $canonical['display'];
                 }
                 $totals[ $norm ] += $contribution;
             }
@@ -144,6 +146,53 @@ class PC_INCI {
             'over_1'  => $over_1,
             'under_1' => $under_1,
             'missing' => array_unique( $missing ),
+        );
+    }
+
+    /**
+     * Map an INCI name to its canonical form, merging equivalent synonyms so
+     * they total as a single declaration line (e.g. Water + Aqua + Eau → Aqua).
+     *
+     * A name is merged only when *every* alphabetic word in it belongs to one
+     * synonym group, so combined forms like "Aqua/Water/Eau" and "Aqua (Water)"
+     * merge, while distinct names that merely contain a group word — e.g.
+     * "Rosa Damascena Flower Water", "Maris Aqua" (sea water) — do not.
+     *
+     * Groups are filterable via 'pc_inci_synonym_groups' (canonical => members).
+     *
+     * @param string $name Raw INCI name.
+     * @return array{key:string,display:string}
+     */
+    public static function canonicalize_inci( $name ) {
+        $name = trim( $name );
+
+        $groups = apply_filters( 'pc_inci_synonym_groups', array(
+            // Canonical label name => equivalent INCI words.
+            'Aqua' => array( 'aqua', 'water', 'eau' ),
+        ) );
+
+        // Alphabetic words only, lowercased, ignoring the blend connector "and".
+        $words = preg_split( '/[^a-z]+/i', strtolower( $name ), -1, PREG_SPLIT_NO_EMPTY );
+        $words = array_values( array_filter( (array) $words, function ( $w ) {
+            return 'and' !== $w;
+        } ) );
+
+        if ( ! empty( $words ) ) {
+            foreach ( $groups as $canonical => $members ) {
+                $members = array_map( 'strtolower', (array) $members );
+                // Every word in the name is a member of this group → it's a synonym.
+                if ( array() === array_diff( $words, $members ) ) {
+                    return array(
+                        'key'     => strtolower( $canonical ),
+                        'display' => $canonical,
+                    );
+                }
+            }
+        }
+
+        return array(
+            'key'     => strtolower( $name ),
+            'display' => $name,
         );
     }
 

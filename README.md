@@ -50,6 +50,13 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.2.2
+- **INCI synonym merging**: `Water`, `Aqua`, `Eau` and combined forms
+  (`Aqua/Water/Eau`, `Aqua (Water)`) now total as a single `Aqua` line in the
+  declaration, while distinct names like `Rosa Damascena Flower Water` are preserved.
+  Filterable via `pc_inci_synonym_groups` (change the canonical term or add groups
+  such as Parfum/Fragrance).
+
 ### 1.2.1
 - INCI splitter no longer breaks single INCI names that contain a slash
   (`Acrylates/C10-30 Alkyl Acrylate Crosspolymer`), an internal comma
