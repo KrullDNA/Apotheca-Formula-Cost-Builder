@@ -50,6 +50,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.1.3
+- INCI blend detection now splits on `(and)`, the word `and`, and `&` (in addition
+  to commas/semicolons/slashes), so multi-INCI raw materials break into their
+  individual label names. Genuine parentheticals like `(Jojoba)` are preserved. The
+  same splitting applies to single rows in the Formulation Data box.
+
 ### 1.1.2
 - Central **currency symbol** setting (Costings Dashboard) used by the admin Cost
   Summary, dashboard, and as the default for the Elementor costing widgets.

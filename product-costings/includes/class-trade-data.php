@@ -84,10 +84,20 @@ class PC_Trade_Data {
                 if ( '' === $inci ) {
                     continue;
                 }
-                $clean[] = array(
-                    'inci'    => $inci,
-                    'percent' => isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100,
-                );
+                $percent = isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100;
+
+                // A single row may itself hold a blend written with (and)/and/&/comma.
+                $names = self::split_inci_names( $inci );
+                if ( empty( $names ) ) {
+                    continue;
+                }
+                $share = $percent / count( $names );
+                foreach ( $names as $name ) {
+                    $clean[] = array(
+                        'inci'    => $name,
+                        'percent' => $share,
+                    );
+                }
             }
         }
 
@@ -103,8 +113,7 @@ class PC_Trade_Data {
                 continue;
             }
 
-            $names = preg_split( '/\s*[,;\/]\s*/', wp_strip_all_tags( $val ), -1, PREG_SPLIT_NO_EMPTY );
-            $names = array_values( array_filter( array_map( 'trim', $names ) ) );
+            $names = self::split_inci_names( $val );
             if ( empty( $names ) ) {
                 continue;
             }
@@ -120,6 +129,33 @@ class PC_Trade_Data {
         }
 
         return array();
+    }
+
+    /**
+     * Split a raw INCI string into its individual INCI names.
+     *
+     * Handles the standard blend separators used on supplier documentation:
+     * "(and)", the bare word "and", "&", plus commas, semicolons and slashes.
+     * Case-insensitive; extra whitespace is trimmed.
+     *
+     * @param string $string Raw INCI text (single name or blend).
+     * @return string[] Individual INCI names.
+     */
+    public static function split_inci_names( $string ) {
+        $string = wp_strip_all_tags( (string) $string );
+
+        $parts = preg_split(
+            '/\s*(?:\(\s*and\s*\)|&|\+|[,;\/]|\band\b)\s*/i',
+            $string,
+            -1,
+            PREG_SPLIT_NO_EMPTY
+        );
+
+        if ( ! is_array( $parts ) ) {
+            return array();
+        }
+
+        return array_values( array_filter( array_map( 'trim', $parts ) ) );
     }
 
     /**

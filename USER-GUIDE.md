@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.1.2)
+# Product Costings — User Guide (v1.1.3)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -99,12 +99,18 @@ see §6.
 
 **Already have an INCI field on your Trade Names?** It's detected automatically
 (supported keys include `inci`, `inci_name`, `inci-name`, `inci_list`, `tn_inci`,
-with and without an underscore prefix). A single name is treated as 100%;
-comma/semicolon/slash-separated lists are split evenly across their parts. The
-detected data pre-fills the repeater when you open the Trade Name — for blends,
-correct the even split to the real percentages and save, since the split affects
-label ordering. Developers can add more keys via the `pc_inci_text_meta_keys`
-filter.
+with and without an underscore prefix). A single name is treated as 100%; blends are
+split into their individual INCI names on any standard separator — **`(and)`**, the
+word **`and`**, **`&`**, or a comma / semicolon / slash — and the percentage is
+divided evenly across the parts. Genuine parentheticals such as
+`Simmondsia Chinensis (Jojoba) Seed Oil` are left intact (only `(and)` is treated as
+a separator). The detected data pre-fills the repeater when you open the Trade Name —
+for blends, correct the even split to the real percentages and save, since the split
+affects label ordering. Developers can add more meta keys via the
+`pc_inci_text_meta_keys` filter.
+
+The same splitting applies if you paste a full blend string into a single row of the
+Formulation Data box — it's expanded into its individual INCI names automatically.
 
 **Usage Rate Limits** — the recommended usage range in a finished formula (% w/w),
 from the supplier's documentation. Leave blank for no limit. The formula builder
