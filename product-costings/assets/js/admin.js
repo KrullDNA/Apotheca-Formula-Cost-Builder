@@ -373,6 +373,28 @@
                 });
             });
 
+            // Formula version rename (editable name, saves as you type / on blur).
+            var versionNameTimers = {};
+            $(document).on('input', '.pc-version-name', function () {
+                var $input = $(this);
+                var index  = $input.data('index');
+                clearTimeout(versionNameTimers[index]);
+                versionNameTimers[index] = setTimeout(function () {
+                    self.saveVersionName($input);
+                }, 600);
+            });
+            $(document).on('blur', '.pc-version-name', function () {
+                var $input = $(this);
+                clearTimeout(versionNameTimers[$input.data('index')]);
+                self.saveVersionName($input);
+            });
+            $(document).on('keydown', '.pc-version-name', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    $(this).blur();
+                }
+            });
+
             $(document).on('click', '.pc-version-restore', function () {
                 if (!window.confirm('Restore this formula version? The current saved formula will be snapshotted first, then replaced. The page will reload.')) {
                     return;
@@ -1008,6 +1030,46 @@
                 },
                 error: function () {
                     $status.text('Save failed: request error.').addClass('pc-error');
+                }
+            });
+        },
+
+        /* ──────────────────────────────
+         * Formula version rename
+         * ────────────────────────────── */
+        saveVersionName: function ($input) {
+            var index    = $input.data('index');
+            var $status  = $('.pc-version-name-status[data-index="' + index + '"]');
+            var lastSaved = $input.data('saved');
+            var value    = $input.val();
+
+            if (lastSaved !== undefined && lastSaved === value) {
+                return; // No change since last save.
+            }
+
+            $status.text('…').removeClass('pc-saved pc-error');
+
+            $.ajax({
+                url: pcData.ajaxUrl,
+                method: 'POST',
+                data: {
+                    action: 'pc_version_rename',
+                    nonce: pcData.nonce,
+                    post_id: $('#post_ID').val(),
+                    index: index,
+                    name: value
+                },
+                success: function (res) {
+                    if (res.success) {
+                        $input.data('saved', value);
+                        $status.text('✓').addClass('pc-saved');
+                        setTimeout(function () { $status.text(''); }, 1500);
+                    } else {
+                        $status.text('!').addClass('pc-error');
+                    }
+                },
+                error: function () {
+                    $status.text('!').addClass('pc-error');
                 }
             });
         }

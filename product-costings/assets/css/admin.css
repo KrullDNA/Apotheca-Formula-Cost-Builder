@@ -515,3 +515,13 @@ tr.pc-inci-subrow > td {
 .pc-inci-sub-status { margin-left: 8px; font-style: italic; }
 .pc-inci-sub-status.pc-saved { color: #007017; font-style: normal; }
 .pc-inci-sub-status.pc-error { color: #d63638; font-style: normal; }
+
+/* v1.3.0 — Formula version editable name */
+.pc-version-name-status {
+    display: inline-block;
+    width: 14px;
+    margin-left: 2px;
+    font-weight: 700;
+}
+.pc-version-name-status.pc-saved { color: #007017; }
+.pc-version-name-status.pc-error { color: #d63638; }

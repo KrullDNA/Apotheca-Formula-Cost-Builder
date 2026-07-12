@@ -32,6 +32,7 @@ class PC_Versions {
         add_action( 'wp_ajax_pc_version_compare', array( $this, 'ajax_compare' ) );
         add_action( 'wp_ajax_pc_version_restore', array( $this, 'ajax_restore' ) );
         add_action( 'wp_ajax_pc_version_delete', array( $this, 'ajax_delete' ) );
+        add_action( 'wp_ajax_pc_version_rename', array( $this, 'ajax_rename' ) );
     }
 
     /* ───────────────────────────────────────────────
@@ -75,6 +76,7 @@ class PC_Versions {
         $versions[] = array(
             'time' => time(),
             'user' => get_current_user_id(),
+            'name' => '',
             'note' => $note,
             'rows' => $rows,
         );
@@ -120,6 +122,7 @@ class PC_Versions {
             <thead>
                 <tr>
                     <th style="width:36px;">#</th>
+                    <th style="width:200px;"><?php esc_html_e( 'Name', 'product-costings' ); ?></th>
                     <th><?php esc_html_e( 'Date', 'product-costings' ); ?></th>
                     <th><?php esc_html_e( 'By', 'product-costings' ); ?></th>
                     <th><?php esc_html_e( 'Note', 'product-costings' ); ?></th>
@@ -137,6 +140,12 @@ class PC_Versions {
                     ?>
                     <tr>
                         <td><?php echo (int) ( $idx + 1 ); ?></td>
+                        <td>
+                            <input type="text" class="pc-version-name" data-index="<?php echo (int) $idx; ?>"
+                                value="<?php echo esc_attr( isset( $v['name'] ) ? $v['name'] : '' ); ?>"
+                                placeholder="<?php esc_attr_e( 'e.g. v23094', 'product-costings' ); ?>" style="width:100%;">
+                            <span class="pc-version-name-status" data-index="<?php echo (int) $idx; ?>"></span>
+                        </td>
                         <td><?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $v['time'] ) ); ?></td>
                         <td><?php echo $user ? esc_html( $user->display_name ) : '&mdash;'; ?></td>
                         <td><?php echo $v['note'] ? esc_html( $v['note'] ) : '<em>&mdash;</em>'; ?></td>
@@ -156,12 +165,12 @@ class PC_Versions {
                         </td>
                     </tr>
                     <tr class="pc-version-detail" id="pc-version-detail-<?php echo (int) $idx; ?>" style="display:none;">
-                        <td colspan="7" class="pc-version-detail-cell"></td>
+                        <td colspan="8" class="pc-version-detail-cell"></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-        <p class="description"><?php esc_html_e( 'Compare shows what changed between that version and the current formula, including the cost impact. Restore replaces the current saved formula with that version (the current formula is snapshotted first) and reloads the page.', 'product-costings' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Give any version a Name (e.g. "v23094" or "Without Glycerine") — it saves automatically as you type. Compare shows what changed between that version and the current formula, including the cost impact. Restore replaces the current saved formula with that version (the current formula is snapshotted first) and reloads the page.', 'product-costings' ); ?></p>
         <?php
     }
 
@@ -340,6 +349,32 @@ class PC_Versions {
 
         unset( $versions[ $index ] );
         update_post_meta( $post_id, self::META_KEY, array_values( $versions ) );
+
+        wp_send_json_success();
+    }
+
+    /* ───────────────────────────────────────────────
+     * AJAX: rename (editable version name)
+     * ─────────────────────────────────────────────── */
+
+    public function ajax_rename() {
+        check_ajax_referer( 'pc_nonce', 'nonce' );
+
+        $post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+        $index   = isset( $_POST['index'] ) ? absint( $_POST['index'] ) : 0;
+        $name    = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+
+        if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+            wp_send_json_error( 'Insufficient permissions.' );
+        }
+
+        $versions = $this->get_versions( $post_id );
+        if ( ! isset( $versions[ $index ] ) ) {
+            wp_send_json_error( 'Unknown version.' );
+        }
+
+        $versions[ $index ]['name'] = $name;
+        update_post_meta( $post_id, self::META_KEY, $versions );
 
         wp_send_json_success();
     }

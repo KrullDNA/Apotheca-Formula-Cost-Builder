@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.2.1)
+# Product Costings — User Guide (v1.3.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -208,6 +208,13 @@ Generated automatically from the saved formula + each Trade Name's INCI composit
 
 - Contributions are summed per INCI name across all ingredients (water from three
   different materials becomes one `Aqua` entry at the combined percentage).
+- **Synonym merging** — equivalent INCI names are combined into one line:
+  `Water`, `Aqua`, `Eau` and combined forms like `Aqua/Water/Eau` or `Aqua (Water)`
+  all total together under the canonical name **`Aqua`**. Genuinely different names
+  that merely contain a group word — e.g. `Rosa Damascena Flower Water`, `Maris Aqua`
+  (sea water) — are left alone. To change the canonical term (e.g. to
+  `Aqua (Water)`) or add your own synonym groups (e.g. `Parfum` / `Fragrance`), use
+  the `pc_inci_synonym_groups` filter.
 - Sorted in **descending order**, with a divider at the **1% threshold** — below it,
   ingredients may legally be listed in any order (EU/UK rules).
 - The 26 EU fragrance allergens are flagged with a red **allergen** badge.
@@ -233,6 +240,12 @@ List** Elementor widget — see §9.
 Every time you save the product with a **changed** formula, a version snapshot is
 stored automatically (up to 25, oldest dropped first) with the date, user, your
 version note, and the row data.
+
+- **Name** — an editable label on each version. Type anything (e.g. `v23094` or
+  `Without Glycerine`) directly in the Name column; it saves automatically as you type
+  (a green ✓ confirms) and on Enter or clicking away. Unlike the Note — which is
+  captured once when the version is created — the Name can be edited any time, on any
+  version.
 
 - **Compare** — expands a panel showing exactly what changed between that version and
   the current formula: ingredients added / removed / changed (old % → new %), plus
