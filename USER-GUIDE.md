@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.2.2)
+# Product Costings — User Guide (v1.3.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -240,6 +240,12 @@ List** Elementor widget — see §9.
 Every time you save the product with a **changed** formula, a version snapshot is
 stored automatically (up to 25, oldest dropped first) with the date, user, your
 version note, and the row data.
+
+- **Name** — an editable label on each version. Type anything (e.g. `v23094` or
+  `Without Glycerine`) directly in the Name column; it saves automatically as you type
+  (a green ✓ confirms) and on Enter or clicking away. Unlike the Note — which is
+  captured once when the version is created — the Name can be edited any time, on any
+  version.
 
 - **Compare** — expands a panel showing exactly what changed between that version and
   the current formula: ingredients added / removed / changed (old % → new %), plus

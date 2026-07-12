@@ -50,6 +50,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.3.0
+- **Editable Name field on Formula Versions** — label any version (e.g. `v23094`,
+  `Without Glycerine`) inline; saves automatically as you type, on blur, or on Enter.
+  Backed by a `pc_version_rename` AJAX endpoint. Distinct from the auto-captured Note.
+
 ### 1.2.2
 - **INCI synonym merging**: `Water`, `Aqua`, `Eau` and combined forms
   (`Aqua/Water/Eau`, `Aqua (Water)`) now total as a single `Aqua` line in the
