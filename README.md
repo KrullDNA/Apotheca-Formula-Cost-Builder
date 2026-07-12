@@ -50,6 +50,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.2.1
+- INCI splitter no longer breaks single INCI names that contain a slash
+  (`Acrylates/C10-30 Alkyl Acrylate Crosspolymer`), an internal comma
+  (`1,2-Hexanediol`), or a parenthetical qualifier. It now splits only on true
+  blend connectors: `(and)`, the word `and`, `&`, `;`, and a comma followed by a space.
+
 ### 1.2.0
 - **Per-ingredient INCI breakdown** in the formula builder: an INCI button on each
   ingredient row expands editable sub-rows (INCI name + % of material) with a live
