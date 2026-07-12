@@ -435,3 +435,83 @@
     color: #fff;
     font-size: 11px;
 }
+
+/* ───────────────────────────────────────
+ * v1.2.0 — Per-ingredient INCI breakdown
+ * ─────────────────────────────────────── */
+
+.pc-formula-table .pc-inci-toggle {
+    font-size: 10px;
+    padding: 0 6px;
+    height: 24px;
+    line-height: 22px;
+}
+
+.pc-formula-table .pc-inci-toggle.active {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+}
+
+.pc-row.pc-inci-open > td {
+    border-bottom: none;
+}
+
+tr.pc-inci-subrow > td {
+    background: #f6f7f7;
+    padding: 0;
+    border-bottom: 2px solid #dcdcde;
+}
+
+.pc-inci-panel {
+    padding: 14px 18px;
+}
+
+.pc-inci-panel-head {
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.pc-inci-sub-table {
+    width: 100%;
+    max-width: 620px;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+}
+
+.pc-inci-sub-table th,
+.pc-inci-sub-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+    font-size: 12px;
+}
+
+.pc-inci-sub-table th {
+    background: #f0f0f1;
+    font-weight: 600;
+}
+
+.pc-inci-sub-contrib {
+    color: #555;
+    white-space: nowrap;
+}
+
+.pc-inci-sub-foot {
+    margin-top: 10px;
+    max-width: 620px;
+}
+
+.pc-inci-sub-total {
+    display: inline-block;
+    margin: 0 10px;
+    font-weight: 600;
+}
+
+.pc-inci-sub-total.pc-total-ok  { color: #007017; }
+.pc-inci-sub-total.pc-total-bad { color: #d63638; }
+
+.pc-inci-sub-status { margin-left: 8px; font-style: italic; }
+.pc-inci-sub-status.pc-saved { color: #007017; font-style: normal; }
+.pc-inci-sub-status.pc-error { color: #d63638; font-style: normal; }

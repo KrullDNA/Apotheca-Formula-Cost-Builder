@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.1.3)
+# Product Costings — User Guide (v1.2.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -77,7 +77,37 @@ A warning panel under the table checks your formula as you type:
 
 These are guardrails, not a safety assessment — your CPSR still governs.
 
-### 2.4 Version note *(new)*
+### 2.4 INCI breakdown per ingredient — for a perfect label *(new in 1.2.0)*
+
+Each ingredient row has an **INCI** button (next to Duplicate/Remove). Click it to
+expand a sub-panel that pulls in that raw material's individual INCI names as editable
+rows, so you can perfect the label declaration straight from the SDS:
+
+- **INCI Name** and **% of material** — each constituent INCI and its percentage of
+  the raw material (not of the whole formula). These should total **100%** — a live
+  total tells you if they don't (green at 100%, red otherwise).
+- **≈ % in formula** — the resulting contribution to the finished product
+  (`row %w/w × % of material`), updated live. This is the number that drives label
+  ordering.
+- **+ Add INCI** / **×** — add or remove constituents (e.g. break a preservative
+  blend into its parts).
+- **Save to raw material** — writes the breakdown back to the **Trade Name**, because
+  a raw material's INCI split is a property of the material itself (from its SDS), not
+  of one product. **This corrects the INCI declaration for every product that uses
+  this material**, so you only enter it once. Reload the product afterwards to refresh
+  the INCI Label Declaration preview (§5).
+
+The panel is seeded from whatever the plugin already knows — your structured
+composition if you've set one, otherwise the auto-detected/­split INCI field (§3.1).
+So the typical workflow is: open the breakdown, replace the even-split estimates with
+the real SDS percentages, and Save. If the SDS gives a **range** for a constituent,
+enter the nominal (typical) value — a single number is what produces a deterministic,
+correctly-ordered label.
+
+> Tip: you only need to do this for **blends** (materials with more than one INCI).
+> Single-substance materials are already 100% one name and need no attention.
+
+### 2.5 Version note *(new)*
 
 Free-text field below the table (e.g. *"Increased glycerin to 3%, swapped
 preservative"*). It's stored with the automatic version snapshot when you save —
@@ -111,6 +141,10 @@ affects label ordering. Developers can add more meta keys via the
 
 The same splitting applies if you paste a full blend string into a single row of the
 Formulation Data box — it's expanded into its individual INCI names automatically.
+
+You can edit the same composition without leaving the formula builder — see the
+**INCI breakdown per ingredient** panel (§2.4), which reads and writes this exact
+data.
 
 **Usage Rate Limits** — the recommended usage range in a finished formula (% w/w),
 from the supplier's documentation. Leave blank for no limit. The formula builder

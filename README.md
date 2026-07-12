@@ -50,6 +50,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.2.0
+- **Per-ingredient INCI breakdown** in the formula builder: an INCI button on each
+  ingredient row expands editable sub-rows (INCI name + % of material) with a live
+  "≈ % in formula" contribution and a 100% total check. Saves the exact split back to
+  the raw material (Trade Name) so the label declaration orders correctly across every
+  product using it. Backed by `pc_get_inci_composition` / `pc_save_inci_composition`
+  AJAX endpoints.
+
 ### 1.1.3
 - INCI blend detection now splits on `(and)`, the word `and`, and `&` (in addition
   to commas/semicolons/slashes), so multi-INCI raw materials break into their

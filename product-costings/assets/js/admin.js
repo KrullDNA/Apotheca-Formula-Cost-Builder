@@ -30,7 +30,12 @@
                 handle: '.pc-drag-handle',
                 axis: 'y',
                 opacity: 0.65,
+                items: '> tr.pc-row',
                 placeholder: 'pc-sortable-placeholder',
+                start: function () {
+                    // Collapse any open INCI panels so they don't detach from their row.
+                    self.collapseAllInci();
+                },
                 update: function () {
                     self.reindexRows();
                     self.recalcTo100();
@@ -100,6 +105,11 @@
                 $select.html('<option value="' + id + '" selected>' + $('<span>').text(text).html() + '</option>');
                 $input.val(text);
                 $list.empty().hide();
+
+                // A different material means a different INCI breakdown — close any open panel.
+                $row.next('.pc-inci-subrow').remove();
+                $row.removeClass('pc-inci-open');
+                $row.find('.pc-inci-toggle').removeClass('active');
 
                 // Fetch pH, price_per_kg, moq from trade name.
                 PC.fetchTradeMeta(id, $row);
@@ -175,15 +185,48 @@
 
             // Remove row.
             this.$wrap.on('click', '.pc-remove-row', function () {
-                $(this).closest('.pc-row').remove();
+                var $row = $(this).closest('.pc-row');
+                $row.next('.pc-inci-subrow').remove();
+                $row.remove();
                 self.reindexRows();
                 self.recalcTo100();
                 self.recalcCostSummary();
             });
 
+            // Toggle the per-ingredient INCI breakdown panel.
+            this.$wrap.on('click', '.pc-inci-toggle', function () {
+                self.toggleInci($(this).closest('.pc-row'));
+            });
+
+            // INCI sub-row: edit %, add, remove, save.
+            this.$wrap.on('input change', '.pc-inci-sub-pct, .pc-inci-sub-name', function () {
+                var $panel = $(this).closest('.pc-inci-panel');
+                self.recalcInciTotals($panel, $panel.closest('.pc-inci-subrow').prev('.pc-row'));
+            });
+            this.$wrap.on('click', '.pc-inci-sub-add', function () {
+                var $panel = $(this).closest('.pc-inci-panel');
+                self.addInciSubRow($panel.find('.pc-inci-sub-body'), '', '');
+                self.recalcInciTotals($panel, $panel.closest('.pc-inci-subrow').prev('.pc-row'));
+            });
+            this.$wrap.on('click', '.pc-inci-sub-remove', function () {
+                var $panel = $(this).closest('.pc-inci-panel');
+                var $row   = $panel.closest('.pc-inci-subrow').prev('.pc-row');
+                $(this).closest('.pc-inci-sub-row').remove();
+                self.recalcInciTotals($panel, $row);
+            });
+            this.$wrap.on('click', '.pc-inci-sub-save', function () {
+                self.saveInci($(this));
+            });
+
             // Duplicate row.
             this.$wrap.on('click', '.pc-duplicate-row', function () {
                 var $row   = $(this).closest('.pc-row');
+
+                // Collapse any open INCI panel first so it isn't half-cloned.
+                $row.next('.pc-inci-subrow').remove();
+                $row.removeClass('pc-inci-open');
+                $row.find('.pc-inci-toggle').removeClass('active');
+
                 var $clone = $row.clone();
                 var newIdx = self.nextIndex++;
 
@@ -250,6 +293,7 @@
                 self.recalcTo100();
                 self.recalcCostSummary();
                 self.recalcWarnings();
+                self.updateInciContribution($(this).closest('.pc-row'));
             });
 
             // Re-check warnings when a Function is picked (preservative check).
@@ -819,6 +863,153 @@
                 html += '</ul>';
             }
             $box.html(html);
+        },
+
+        /* ──────────────────────────────
+         * Per-ingredient INCI breakdown
+         * ────────────────────────────── */
+        collapseAllInci: function () {
+            this.$body.find('.pc-inci-subrow').remove();
+            this.$body.find('.pc-row').removeClass('pc-inci-open');
+            this.$body.find('.pc-inci-toggle').removeClass('active');
+        },
+
+        toggleInci: function ($row) {
+            var self = this;
+
+            // Already open → close.
+            if ($row.next('.pc-inci-subrow').length) {
+                $row.next('.pc-inci-subrow').remove();
+                $row.removeClass('pc-inci-open');
+                $row.find('.pc-inci-toggle').removeClass('active');
+                return;
+            }
+
+            var tradeId = $row.find('.pc-field-trade-name').val();
+            if (!tradeId) {
+                window.alert('Select a Trade Name for this row first.');
+                return;
+            }
+
+            var cols = $row.children('td').length || 11;
+            var $sub = $('<tr class="pc-inci-subrow"><td colspan="' + cols + '"><div class="pc-inci-panel"><em>Loading INCI breakdown…</em></div></td></tr>');
+            $row.after($sub);
+            $row.addClass('pc-inci-open');
+            $row.find('.pc-inci-toggle').addClass('active');
+
+            $.ajax({
+                url: pcData.ajaxUrl,
+                data: { action: 'pc_get_inci_composition', nonce: pcData.nonce, post_id: tradeId },
+                success: function (res) {
+                    if (res.success) {
+                        self.renderInciPanel($sub.find('.pc-inci-panel'), res.data, $row);
+                    } else {
+                        $sub.find('.pc-inci-panel').html('<em>Could not load: ' + $('<span>').text(res.data || 'error').html() + '</em>');
+                    }
+                },
+                error: function () {
+                    $sub.find('.pc-inci-panel').html('<em>Could not load INCI breakdown.</em>');
+                }
+            });
+        },
+
+        renderInciPanel: function ($panel, data, $row) {
+            var self    = this;
+            var comp    = (data.composition && data.composition.length) ? data.composition : [{ inci: '', percent: '' }];
+            var tradeId = $row.find('.pc-field-trade-name').val();
+            var title   = $('<span>').text(data.title || 'this raw material').html();
+
+            var html = '<div class="pc-inci-panel-head">INCI breakdown for <strong>' + title +
+                '</strong> — enter each INCI as a <strong>% of the raw material</strong> (from its SDS). Should total 100%.</div>';
+            html += '<table class="pc-inci-sub-table"><thead><tr>' +
+                '<th>INCI Name</th><th>% of material</th><th>&asymp; % in formula</th><th></th>' +
+                '</tr></thead><tbody class="pc-inci-sub-body"></tbody></table>';
+            html += '<div class="pc-inci-sub-foot">' +
+                '<button type="button" class="button pc-inci-sub-add">+ Add INCI</button> ' +
+                '<span class="pc-inci-sub-total"></span> ' +
+                '<button type="button" class="button button-primary pc-inci-sub-save" data-trade="' + parseInt(tradeId, 10) + '">Save to raw material</button> ' +
+                '<span class="pc-inci-sub-status"></span>' +
+                '<p class="description">Saving updates this raw material\'s INCI composition everywhere it is used, and the label declaration re-orders accordingly. If the SDS gives a range, enter the nominal (typical) value. Reload the product to refresh the INCI Label Declaration preview below.</p>' +
+                '</div>';
+
+            $panel.html(html);
+
+            var $body = $panel.find('.pc-inci-sub-body');
+            comp.forEach(function (r) { self.addInciSubRow($body, r.inci, r.percent); });
+            self.recalcInciTotals($panel, $row);
+        },
+
+        addInciSubRow: function ($body, inci, percent) {
+            var $tr = $(
+                '<tr class="pc-inci-sub-row">' +
+                '<td><input type="text" class="pc-inci-sub-name widefat" placeholder="e.g. Glycerin"></td>' +
+                '<td><input type="number" step="any" min="0" max="100" class="pc-inci-sub-pct" style="width:90px;"></td>' +
+                '<td class="pc-inci-sub-contrib">&mdash;</td>' +
+                '<td><button type="button" class="button pc-inci-sub-remove" title="Remove">&times;</button></td>' +
+                '</tr>'
+            );
+            $tr.find('.pc-inci-sub-name').val(inci || '');
+            if (percent !== '' && percent != null && !isNaN(parseFloat(percent))) {
+                $tr.find('.pc-inci-sub-pct').val(parseFloat(percent));
+            }
+            $body.append($tr);
+        },
+
+        recalcInciTotals: function ($panel, $row) {
+            var rowWW = ($row && $row.length) ? (parseFloat($row.find('.pc-field-ww').val()) || 0) : 0;
+            var total = 0;
+
+            $panel.find('.pc-inci-sub-row').each(function () {
+                var pct = parseFloat($(this).find('.pc-inci-sub-pct').val()) || 0;
+                total += pct;
+                var contrib = rowWW * pct / 100;
+                $(this).find('.pc-inci-sub-contrib').text(contrib > 0 ? contrib.toFixed(3) + '%' : '—');
+            });
+
+            var $t = $panel.find('.pc-inci-sub-total');
+            $t.text('Total: ' + total.toFixed(2) + '% of material');
+            var ok = Math.abs(total - 100) <= 0.01;
+            $t.toggleClass('pc-total-bad', !ok).toggleClass('pc-total-ok', ok);
+        },
+
+        updateInciContribution: function ($row) {
+            var $sub = $row.next('.pc-inci-subrow');
+            if ($sub.length) {
+                this.recalcInciTotals($sub.find('.pc-inci-panel'), $row);
+            }
+        },
+
+        saveInci: function ($btn) {
+            var $panel  = $btn.closest('.pc-inci-panel');
+            var tradeId = $btn.data('trade');
+            var $status = $panel.find('.pc-inci-sub-status');
+            var rows    = [];
+
+            $panel.find('.pc-inci-sub-row').each(function () {
+                var name = $.trim($(this).find('.pc-inci-sub-name').val());
+                var pct  = $(this).find('.pc-inci-sub-pct').val();
+                if (name) {
+                    rows.push({ inci: name, percent: pct });
+                }
+            });
+
+            $status.text('Saving…').removeClass('pc-saved pc-error');
+
+            $.ajax({
+                url: pcData.ajaxUrl,
+                method: 'POST',
+                data: { action: 'pc_save_inci_composition', nonce: pcData.nonce, post_id: tradeId, rows: rows },
+                success: function (res) {
+                    if (res.success) {
+                        $status.text('Saved ✓ — reload to refresh the declaration.').addClass('pc-saved');
+                    } else {
+                        $status.text('Save failed: ' + (res.data || 'error')).addClass('pc-error');
+                    }
+                },
+                error: function () {
+                    $status.text('Save failed: request error.').addClass('pc-error');
+                }
+            });
         }
     };
 

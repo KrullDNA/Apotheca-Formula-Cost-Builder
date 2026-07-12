@@ -157,6 +157,7 @@ class PC_Product_Metaboxes {
                     <input type="text" name="pc_rows[{{data.i}}][natural_origin]" value="" class="pc-field-natural-origin" readonly>
                 </td>
                 <td class="pc-col-actions">
+                    <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                     <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
                     <button type="button" class="button pc-remove-row" title="<?php esc_attr_e( 'Remove', 'product-costings' ); ?>">&#x1F5D1;</button>
                 </td>
@@ -239,6 +240,7 @@ class PC_Product_Metaboxes {
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][natural_origin]" value="<?php echo esc_attr( $nat_orig ); ?>" class="pc-field-natural-origin" readonly>
             </td>
             <td class="pc-col-actions">
+                <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                 <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
                 <button type="button" class="button pc-remove-row" title="<?php esc_attr_e( 'Remove', 'product-costings' ); ?>">&#x1F5D1;</button>
             </td>

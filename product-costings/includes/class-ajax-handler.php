@@ -23,6 +23,8 @@ class PC_Ajax_Handler {
     private function __construct() {
         add_action( 'wp_ajax_pc_search_trade_names', array( $this, 'search_trade_names' ) );
         add_action( 'wp_ajax_pc_get_trade_name_meta', array( $this, 'get_trade_name_meta' ) );
+        add_action( 'wp_ajax_pc_get_inci_composition', array( $this, 'get_inci_composition' ) );
+        add_action( 'wp_ajax_pc_save_inci_composition', array( $this, 'save_inci_composition' ) );
     }
 
     /**
@@ -112,5 +114,63 @@ class PC_Ajax_Handler {
             'usage_max'      => PC_Trade_Data::get( $post_id, 'usage_max' ),
             'title'          => get_the_title( $post_id ),
         ) );
+    }
+
+    /**
+     * Return the INCI composition rows for a trade name (for the per-ingredient
+     * INCI breakdown panel in the formula builder).
+     */
+    public function get_inci_composition() {
+        check_ajax_referer( 'pc_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_send_json_error( 'Insufficient permissions.' );
+        }
+
+        $trade_id = isset( $_GET['post_id'] ) ? absint( $_GET['post_id'] ) : 0;
+
+        if ( ! $trade_id || 'trade-names' !== get_post_type( $trade_id ) ) {
+            wp_send_json_error( 'Invalid trade name.' );
+        }
+
+        wp_send_json_success( array(
+            'title'        => get_the_title( $trade_id ),
+            'composition'  => PC_Trade_Data::get_composition( $trade_id ),
+            'edit_link'    => get_edit_post_link( $trade_id, 'raw' ),
+        ) );
+    }
+
+    /**
+     * Save an edited INCI composition back to the trade name (source of truth).
+     */
+    public function save_inci_composition() {
+        check_ajax_referer( 'pc_nonce', 'nonce' );
+
+        $trade_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+
+        if ( ! $trade_id || 'trade-names' !== get_post_type( $trade_id ) ) {
+            wp_send_json_error( 'Invalid trade name.' );
+        }
+        if ( ! current_user_can( 'edit_post', $trade_id ) ) {
+            wp_send_json_error( 'Insufficient permissions to edit this raw material.' );
+        }
+
+        $raw   = isset( $_POST['rows'] ) && is_array( $_POST['rows'] ) ? wp_unslash( $_POST['rows'] ) : array();
+        $clean = array();
+
+        foreach ( $raw as $row ) {
+            $inci = sanitize_text_field( $row['inci'] ?? '' );
+            if ( '' === $inci ) {
+                continue;
+            }
+            $clean[] = array(
+                'inci'    => $inci,
+                'percent' => floatval( $row['percent'] ?? 0 ),
+            );
+        }
+
+        update_post_meta( $trade_id, '_pc_inci_composition', $clean );
+
+        wp_send_json_success();
     }
 }
