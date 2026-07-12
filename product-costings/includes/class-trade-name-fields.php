@@ -58,7 +58,7 @@ class PC_Trade_Name_Fields {
         ?>
         <h4><?php esc_html_e( 'INCI Composition', 'product-costings' ); ?></h4>
         <p class="description">
-            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration. For a single-substance material add one row at 100%. For blends (e.g. a preservative system or an emulsifier blend) add one row per INCI with its percentage of the raw material.', 'product-costings' ); ?>
+            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration. For a single-substance material add one row at 100%. For blends (e.g. a preservative system or an emulsifier blend) add one row per INCI with its percentage of the raw material. If this Trade Name already has a plain-text INCI field, it is detected automatically and pre-filled below (blends are split evenly — adjust the percentages to the real split and save for accurate label ordering).', 'product-costings' ); ?>
         </p>
         <table class="widefat striped" id="pc-inci-comp-table" style="max-width:640px;">
             <thead>

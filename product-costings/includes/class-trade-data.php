@@ -51,29 +51,75 @@ class PC_Trade_Data {
     }
 
     /**
+     * Meta keys checked for a pre-existing plain-text INCI field on the
+     * Trade Names CPT (used as a fallback when no structured composition
+     * has been saved via the Formulation Data metabox).
+     */
+    private static $inci_text_keys = array(
+        'inci', '_inci', 'INCI', '_INCI',
+        'inci_name', '_inci_name', 'inci-name', '_inci-name',
+        'inci_list', '_inci_list', 'tn_inci', '_tn_inci',
+    );
+
+    /**
      * Get the INCI composition rows for a trade name.
+     *
+     * Prefers the structured composition saved in the Formulation Data
+     * metabox (_pc_inci_composition). Falls back to any plain-text INCI
+     * field already on the Trade Name: a single name becomes one row at
+     * 100%; a comma/semicolon/slash-separated list is split evenly across
+     * its parts (edit the Formulation Data box to set real percentages
+     * for accurate label ordering).
      *
      * @param int $post_id Trade name post ID.
      * @return array[] Array of array( 'inci' => string, 'percent' => float ).
      */
     public static function get_composition( $post_id ) {
-        $rows = get_post_meta( $post_id, '_pc_inci_composition', true );
-        if ( ! is_array( $rows ) ) {
-            return array();
+        $rows  = get_post_meta( $post_id, '_pc_inci_composition', true );
+        $clean = array();
+
+        if ( is_array( $rows ) ) {
+            foreach ( $rows as $row ) {
+                $inci = isset( $row['inci'] ) ? trim( $row['inci'] ) : '';
+                if ( '' === $inci ) {
+                    continue;
+                }
+                $clean[] = array(
+                    'inci'    => $inci,
+                    'percent' => isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100,
+                );
+            }
         }
 
-        $clean = array();
-        foreach ( $rows as $row ) {
-            $inci = isset( $row['inci'] ) ? trim( $row['inci'] ) : '';
-            if ( '' === $inci ) {
+        if ( ! empty( $clean ) ) {
+            return $clean;
+        }
+
+        // Fallback: existing plain-text INCI field on the Trade Name.
+        $keys = apply_filters( 'pc_inci_text_meta_keys', self::$inci_text_keys );
+        foreach ( $keys as $key ) {
+            $val = get_post_meta( $post_id, $key, true );
+            if ( ! is_string( $val ) || '' === trim( $val ) ) {
                 continue;
             }
-            $clean[] = array(
-                'inci'    => $inci,
-                'percent' => isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100,
-            );
+
+            $names = preg_split( '/\s*[,;\/]\s*/', wp_strip_all_tags( $val ), -1, PREG_SPLIT_NO_EMPTY );
+            $names = array_values( array_filter( array_map( 'trim', $names ) ) );
+            if ( empty( $names ) ) {
+                continue;
+            }
+
+            $share = 100 / count( $names );
+            foreach ( $names as $name ) {
+                $clean[] = array(
+                    'inci'    => $name,
+                    'percent' => $share,
+                );
+            }
+            return $clean;
         }
-        return $clean;
+
+        return array();
     }
 
     /**

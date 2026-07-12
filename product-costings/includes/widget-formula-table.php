@@ -70,7 +70,7 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
         $this->add_control( 'currency_symbol', array(
             'label'   => esc_html__( 'Currency Symbol', 'product-costings' ),
             'type'    => \Elementor\Controls_Manager::TEXT,
-            'default' => '$',
+            'default' => get_option( 'pc_currency_symbol', '$' ),
         ) );
 
         $this->add_control( 'waste_percent', array(

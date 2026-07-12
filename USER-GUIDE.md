@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.1.1)
+# Product Costings — User Guide (v1.1.2)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -97,6 +97,15 @@ see §6.
   Check your supplier's composition/SDS documentation for the split; if unknown, an
   even split is better than nothing but mark it for follow-up.
 
+**Already have an INCI field on your Trade Names?** It's detected automatically
+(supported keys include `inci`, `inci_name`, `inci-name`, `inci_list`, `tn_inci`,
+with and without an underscore prefix). A single name is treated as 100%;
+comma/semicolon/slash-separated lists are split evenly across their parts. The
+detected data pre-fills the repeater when you open the Trade Name — for blends,
+correct the even split to the real percentages and save, since the split affects
+label ordering. Developers can add more keys via the `pc_inci_text_meta_keys`
+filter.
+
 **Usage Rate Limits** — the recommended usage range in a finished formula (% w/w),
 from the supplier's documentation. Leave blank for no limit. The formula builder
 warns live whenever this material is used outside the range.
@@ -186,6 +195,8 @@ version note, and the row data.
   drift.
 - **Restore** — replaces the current saved formula with that version and reloads the
   page. Your current formula is snapshotted first, so restore is always reversible.
+- **🗑 Delete** — permanently removes that version snapshot (with confirmation).
+  Deleting a version never affects the current formula.
 
 ---
 
@@ -197,6 +208,9 @@ saved ingredient prices no longer match current Trade Name prices.
 
 - **Margin** = (price − unit cost) ÷ price. Set your **Target margin %** at the top;
   anything below it is highlighted red.
+- **Currency symbol** — also set at the top of this page. It's used across the admin
+  Cost Summary, this dashboard, and as the default for new Elementor costing widgets
+  (existing widgets keep their own per-widget symbol until you change them).
 - Workflow after a supplier price rise: refresh prices on the affected products
   (§2.2), then scan this page for red cells — those are the products that need a
   price review or reformulation.
@@ -266,6 +280,7 @@ front/back numbers.
 | Usage limits | `_pc_usage_min` / `_pc_usage_max` (trade name meta) |
 | Function list | `pc_formula_functions` (option) |
 | Target margin | `pc_target_margin` (option) |
+| Currency symbol | `pc_currency_symbol` (option, default `$`) |
 
 Product cost fields (`batch_size`, `labour`, `unit_size`, `cost_price`, `wholesale`,
 `rrp`, `final_ph`, `method`, …) are **read** from your existing CPT fields (plain,
