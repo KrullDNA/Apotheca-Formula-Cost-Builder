@@ -299,17 +299,25 @@
                 self.updateInciContribution($(this).closest('.pc-row'));
             });
 
-            // Validate %w/w on blur: allow a number or exactly "q.s." — nothing else.
-            this.$wrap.on('blur', '.pc-field-ww', function () {
+            // Validate %w/w when leaving the field: allow a plain number or
+            // exactly "q.s." — anything else is cleared.
+            this.$wrap.on('blur change focusout', '.pc-field-ww', function () {
                 var $f = $(this);
                 if ($f.prop('readonly')) { return; }
                 var v = $.trim($f.val());
                 if (v === '') { return; }
+
                 if (/^q\.?\s*s\.?$/i.test(v)) {
-                    $f.val('q.s.');
-                } else if (isNaN(parseFloat(v))) {
-                    $f.val(''); // Not a number and not q.s. — clear it.
+                    // Quantum satis — normalise to "q.s.".
+                    if (v !== 'q.s.') { $f.val('q.s.'); }
+                } else if (isFinite(Number(v))) {
+                    // A valid number (whole string must be numeric); keep it.
+                    return;
+                } else {
+                    // Not a number and not q.s. — reject it.
+                    $f.val('');
                 }
+
                 self.recalcTo100();
                 self.recalcCostSummary();
                 self.recalcWarnings();

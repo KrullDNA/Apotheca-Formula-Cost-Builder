@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.7
+- Stricter %w/w validation: on leaving the field, the value must be a plain number or
+  exactly "q.s." — anything else (including partial-number text like "12abc") is
+  cleared. Server-side, non-numeric input was already coerced, so no bad data was
+  stored.
+
 ### 1.10.6
 - The **% w/w** column accepts `q.s.` (quantum satis) as well as numbers — the only
   non-numeric value allowed; other text is rejected. q.s. rows count as 0 in every
