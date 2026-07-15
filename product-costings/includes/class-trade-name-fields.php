@@ -36,6 +36,15 @@ class PC_Trade_Name_Fields {
         );
 
         add_meta_box(
+            'pc_trade_pricing',
+            __( 'Bulk Pricing (quantity breaks)', 'product-costings' ),
+            array( $this, 'render_pricing_metabox' ),
+            'trade-names',
+            'normal',
+            'default'
+        );
+
+        add_meta_box(
             'pc_trade_where_used',
             __( 'Where Used', 'product-costings' ),
             array( $this, 'render_where_used_metabox' ),
@@ -43,6 +52,62 @@ class PC_Trade_Name_Fields {
             'normal',
             'default'
         );
+    }
+
+    /* ───────────────────────────────────────────────
+     * Bulk Pricing (quantity breaks)
+     * ─────────────────────────────────────────────── */
+
+    public function render_pricing_metabox( $post ) {
+        // Nonce is shared with the Formulation Data metabox (same edit form).
+        $tiers = PC_Trade_Data::get_price_tiers( $post->ID );
+        ?>
+        <p class="description">
+            <?php esc_html_e( 'Optional supplier price breaks. Enter the price per kg at each purchase quantity, e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price per kg is used — so scaling a batch up automatically picks up bulk pricing. Leave empty to use the single Price/KG field for all quantities.', 'product-costings' ); ?>
+        </p>
+        <table class="widefat striped" id="pc-price-tier-table" style="max-width:420px;">
+            <thead>
+                <tr>
+                    <th style="width:160px;"><?php esc_html_e( 'Quantity from (kg)', 'product-costings' ); ?></th>
+                    <th style="width:160px;"><?php esc_html_e( 'Price per kg', 'product-costings' ); ?></th>
+                    <th style="width:50px;">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody id="pc-price-tier-body">
+                <?php
+                if ( empty( $tiers ) ) {
+                    $tiers = array( array( 'qty' => '', 'price' => '' ) );
+                }
+                foreach ( $tiers as $i => $tier ) :
+                    ?>
+                    <tr>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][qty]" value="<?php echo esc_attr( $tier['qty'] ); ?>" class="widefat" placeholder="1"></td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price]" value="<?php echo esc_attr( $tier['price'] ); ?>" class="widefat" placeholder="50.00"></td>
+                        <td><button type="button" class="button pc-tier-remove">&times;</button></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <p><button type="button" class="button" id="pc-tier-add"><?php esc_html_e( '+ Add Price Break', 'product-costings' ); ?></button></p>
+
+        <script>
+        jQuery(function ($) {
+            $('#pc-tier-add').on('click', function () {
+                var idx = $('#pc-price-tier-body tr').length;
+                $('#pc-price-tier-body').append(
+                    '<tr>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][qty]" class="widefat"></td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price]" class="widefat"></td>' +
+                    '<td><button type="button" class="button pc-tier-remove">&times;</button></td>' +
+                    '</tr>'
+                );
+            });
+            $('#pc-price-tier-table').on('click', '.pc-tier-remove', function () {
+                $(this).closest('tr').remove();
+            });
+        });
+        </script>
+        <?php
     }
 
     /* ───────────────────────────────────────────────
@@ -58,26 +123,30 @@ class PC_Trade_Name_Fields {
         ?>
         <h4><?php esc_html_e( 'INCI Composition', 'product-costings' ); ?></h4>
         <p class="description">
-            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration. For a single-substance material add one row at 100%. For blends (e.g. a preservative system or an emulsifier blend) add one row per INCI with its percentage of the raw material. If this Trade Name already has a plain-text INCI field, it is detected automatically and pre-filled below (blends are split evenly — adjust the percentages to the real split and save for accurate label ordering).', 'product-costings' ); ?>
+            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration, with each one\'s percentage of the raw material. Enter a Min–Max range from the SDS; the midpoint is used for label ordering and each material\'s constituents are automatically normalised to total 100%. For a single-substance material add one row at 100. If this Trade Name already has a plain-text INCI field, it is detected automatically and pre-filled below.', 'product-costings' ); ?>
         </p>
         <table class="widefat striped" id="pc-inci-comp-table" style="max-width:640px;">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'INCI Name', 'product-costings' ); ?></th>
-                    <th style="width:120px;"><?php esc_html_e( '% of material', 'product-costings' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Min % of material', 'product-costings' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Max % of material', 'product-costings' ); ?></th>
                     <th style="width:60px;">&nbsp;</th>
                 </tr>
             </thead>
             <tbody id="pc-inci-comp-body">
                 <?php
                 if ( empty( $composition ) ) {
-                    $composition = array( array( 'inci' => '', 'percent' => 100 ) );
+                    $composition = array( array( 'inci' => '', 'percent_min' => 100, 'percent_max' => 100 ) );
                 }
                 foreach ( $composition as $i => $row ) :
+                    $r_min = isset( $row['percent_min'] ) ? $row['percent_min'] : ( isset( $row['percent'] ) ? $row['percent'] : '' );
+                    $r_max = isset( $row['percent_max'] ) ? $row['percent_max'] : ( isset( $row['percent'] ) ? $row['percent'] : '' );
                     ?>
                     <tr>
                         <td><input type="text" name="pc_inci_rows[<?php echo (int) $i; ?>][inci]" value="<?php echo esc_attr( $row['inci'] ); ?>" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Glycerin', 'product-costings' ); ?>"></td>
-                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent]" value="<?php echo esc_attr( $row['percent'] ); ?>" step="any" min="0" max="100" class="widefat"></td>
+                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent_min]" value="<?php echo esc_attr( $r_min ); ?>" step="any" min="0" max="100" class="widefat"></td>
+                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent_max]" value="<?php echo esc_attr( $r_max ); ?>" step="any" min="0" max="100" class="widefat"></td>
                         <td><button type="button" class="button pc-inci-remove">&times;</button></td>
                     </tr>
                 <?php endforeach; ?>
@@ -106,7 +175,8 @@ class PC_Trade_Name_Fields {
                 $('#pc-inci-comp-body').append(
                     '<tr>' +
                     '<td><input type="text" name="pc_inci_rows[' + idx + '][inci]" class="widefat"></td>' +
-                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent]" value="" step="any" min="0" max="100" class="widefat"></td>' +
+                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent_min]" value="" step="any" min="0" max="100" class="widefat"></td>' +
+                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent_max]" value="" step="any" min="0" max="100" class="widefat"></td>' +
                     '<td><button type="button" class="button pc-inci-remove">&times;</button></td>' +
                     '</tr>'
                 );
@@ -186,7 +256,7 @@ class PC_Trade_Name_Fields {
             return;
         }
 
-        // INCI composition.
+        // INCI composition (Min–Max % of material per INCI).
         $raw   = isset( $_POST['pc_inci_rows'] ) && is_array( $_POST['pc_inci_rows'] ) ? wp_unslash( $_POST['pc_inci_rows'] ) : array();
         $clean = array();
         foreach ( $raw as $row ) {
@@ -194,9 +264,29 @@ class PC_Trade_Name_Fields {
             if ( '' === $inci ) {
                 continue;
             }
+
+            $min = isset( $row['percent_min'] ) && '' !== $row['percent_min'] ? floatval( $row['percent_min'] ) : null;
+            $max = isset( $row['percent_max'] ) && '' !== $row['percent_max'] ? floatval( $row['percent_max'] ) : null;
+
+            if ( null === $min && null === $max ) {
+                continue;
+            }
+            if ( null === $min ) {
+                $min = $max;
+            }
+            if ( null === $max ) {
+                $max = $min;
+            }
+            if ( $max < $min ) {
+                $tmp = $min;
+                $min = $max;
+                $max = $tmp;
+            }
+
             $clean[] = array(
-                'inci'    => $inci,
-                'percent' => floatval( $row['percent'] ?? 100 ),
+                'inci'        => $inci,
+                'percent_min' => $min,
+                'percent_max' => $max,
             );
         }
         update_post_meta( $post_id, '_pc_inci_composition', $clean );
@@ -209,6 +299,22 @@ class PC_Trade_Name_Fields {
             } else {
                 update_post_meta( $post_id, $meta_key, floatval( $val ) );
             }
+        }
+
+        // Bulk pricing tiers.
+        $raw_tiers   = isset( $_POST['pc_price_tiers'] ) && is_array( $_POST['pc_price_tiers'] ) ? wp_unslash( $_POST['pc_price_tiers'] ) : array();
+        $clean_tiers = array();
+        foreach ( $raw_tiers as $tier ) {
+            $qty   = floatval( $tier['qty'] ?? 0 );
+            $price = floatval( $tier['price'] ?? 0 );
+            if ( $qty > 0 && $price > 0 ) {
+                $clean_tiers[] = array( 'qty' => $qty, 'price' => $price );
+            }
+        }
+        if ( empty( $clean_tiers ) ) {
+            delete_post_meta( $post_id, '_pc_price_tiers' );
+        } else {
+            update_post_meta( $post_id, '_pc_price_tiers', $clean_tiers );
         }
     }
 }

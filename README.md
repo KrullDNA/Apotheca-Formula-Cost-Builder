@@ -50,6 +50,23 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.5.0
+- **INCI % ranges (Min–Max) from SDS**: each INCI constituent now takes a Min/Max
+  percentage of the raw material; the midpoint drives label ordering. Available in
+  both the per-ingredient INCI breakdown panel and the Trade Name Formulation Data box.
+- **Auto-normalisation to 100%**: each material's constituent midpoints are normalised
+  to total 100% of the material, and the whole declaration is normalised to total
+  100% — so the ingredients list always adds up correctly regardless of SDS ranges.
+
+### 1.4.0
+- **Bulk pricing (quantity breaks) on Trade Names**: define price-per-kg tiers
+  (e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30). Batch costing prices each ingredient's
+  purchased quantity against the applicable tier, so scale-up figures (Batch Costings
+  widget, Costings Dashboard, admin Cost Summary, and the Batch Size Sweet Spot panel)
+  reflect real bulk pricing. Falls back to the single Price/KG when no tiers are set.
+- **Anhydrous / self-preserving acknowledgement checkbox** on the Formula Ingredients
+  box to suppress the "no preservative" reminder (saved per product).
+
 ### 1.3.0
 - **Editable Name field on Formula Versions** — label any version (e.g. `v23094`,
   `Without Glycerine`) inline; saves automatically as you type, on blur, or on Enter.

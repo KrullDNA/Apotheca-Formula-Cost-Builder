@@ -111,6 +111,15 @@ class PC_Product_Metaboxes {
 
             <div id="pc-formula-warnings"></div>
 
+            <?php $preservative_ack = get_post_meta( $post->ID, '_pc_preservative_ack', true ); ?>
+            <p style="margin-top:8px;">
+                <label>
+                    <input type="checkbox" id="pc-preservative-ack" name="pc_preservative_ack" value="1" <?php checked( $preservative_ack, '1' ); ?>>
+                    <?php esc_html_e( 'This formula is anhydrous or self-preserving (no preservative required)', 'product-costings' ); ?>
+                </label>
+                <span class="description"><?php esc_html_e( 'Tick to acknowledge and hide the "no preservative" reminder. Does not replace CPSR / challenge-test sign-off.', 'product-costings' ); ?></span>
+            </p>
+
             <p style="margin-top:12px;">
                 <label for="pc-version-note"><strong><?php esc_html_e( 'Version note', 'product-costings' ); ?></strong></label>
                 <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:60%;">
@@ -185,16 +194,18 @@ class PC_Product_Metaboxes {
         $usage_max = '';
         $stale     = false;
         $cur_price = '';
+        $tiers     = array();
         if ( $trade_id ) {
             $usage_min = PC_Trade_Data::get( $trade_id, 'usage_min' );
             $usage_max = PC_Trade_Data::get( $trade_id, 'usage_max' );
             $cur_price = PC_Trade_Data::get( $trade_id, 'price_per_kg' );
+            $tiers     = PC_Trade_Data::get_price_tiers( $trade_id );
             if ( '' !== $price && '' !== $cur_price && abs( floatval( $price ) - floatval( $cur_price ) ) > 0.0001 ) {
                 $stale = true;
             }
         }
         ?>
-        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>" data-usage-min="<?php echo esc_attr( $usage_min ); ?>" data-usage-max="<?php echo esc_attr( $usage_max ); ?>">
+        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>" data-usage-min="<?php echo esc_attr( $usage_min ); ?>" data-usage-max="<?php echo esc_attr( $usage_max ); ?>" data-price-tiers="<?php echo esc_attr( wp_json_encode( $tiers ) ); ?>">
             <td class="pc-col-sort pc-drag-handle">&#9776;</td>
             <td class="pc-col-to100">
                 <input type="checkbox" name="pc_rows[<?php echo (int) $i; ?>][is_to_100]" value="1" class="pc-field-to100" <?php checked( $is_to_100 ); ?>>
@@ -342,6 +353,13 @@ class PC_Product_Metaboxes {
                 $waste = floatval( wp_unslash( $_POST['pc_waste_percent'] ) );
                 $waste = max( 0, min( 50, $waste ) );
                 update_post_meta( $post_id, '_pc_waste_percent', $waste );
+            }
+
+            // --- Preservative acknowledgement (suppresses the "no preservative" reminder) ---
+            if ( ! empty( $_POST['pc_preservative_ack'] ) ) {
+                update_post_meta( $post_id, '_pc_preservative_ack', '1' );
+            } else {
+                delete_post_meta( $post_id, '_pc_preservative_ack' );
             }
         }
     }

@@ -72,7 +72,8 @@ class PC_Trade_Data {
      * for accurate label ordering).
      *
      * @param int $post_id Trade name post ID.
-     * @return array[] Array of array( 'inci' => string, 'percent' => float ).
+     * @return array[] Array of array( 'inci' => string, 'percent_min' => float,
+     *                 'percent_max' => float, 'percent' => float (midpoint) ).
      */
     public static function get_composition( $post_id ) {
         $rows  = get_post_meta( $post_id, '_pc_inci_composition', true );
@@ -84,18 +85,37 @@ class PC_Trade_Data {
                 if ( '' === $inci ) {
                     continue;
                 }
-                $percent = isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100;
+
+                // Range support: percent_min / percent_max, falling back to a
+                // single stored percent for older data.
+                if ( isset( $row['percent_min'] ) || isset( $row['percent_max'] ) ) {
+                    $min = isset( $row['percent_min'] ) && '' !== $row['percent_min'] ? floatval( $row['percent_min'] ) : 0;
+                    $max = isset( $row['percent_max'] ) && '' !== $row['percent_max'] ? floatval( $row['percent_max'] ) : $min;
+                } else {
+                    $single = isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100;
+                    $min    = $single;
+                    $max    = $single;
+                }
+                if ( $max < $min ) {
+                    $tmp = $min;
+                    $min = $max;
+                    $max = $tmp;
+                }
 
                 // A single row may itself hold a blend written with (and)/and/&/comma.
                 $names = self::split_inci_names( $inci );
                 if ( empty( $names ) ) {
                     continue;
                 }
-                $share = $percent / count( $names );
+                $count = count( $names );
                 foreach ( $names as $name ) {
+                    $row_min = $min / $count;
+                    $row_max = $max / $count;
                     $clean[] = array(
-                        'inci'    => $name,
-                        'percent' => $share,
+                        'inci'        => $name,
+                        'percent_min' => $row_min,
+                        'percent_max' => $row_max,
+                        'percent'     => ( $row_min + $row_max ) / 2, // Midpoint (nominal).
                     );
                 }
             }
@@ -121,8 +141,10 @@ class PC_Trade_Data {
             $share = 100 / count( $names );
             foreach ( $names as $name ) {
                 $clean[] = array(
-                    'inci'    => $name,
-                    'percent' => $share,
+                    'inci'        => $name,
+                    'percent_min' => $share,
+                    'percent_max' => $share,
+                    'percent'     => $share,
                 );
             }
             return $clean;
@@ -163,6 +185,69 @@ class PC_Trade_Data {
         }
 
         return array_values( array_filter( array_map( 'trim', $parts ) ) );
+    }
+
+    /**
+     * Get the bulk pricing tiers (quantity breaks) for a trade name.
+     *
+     * Each tier: array( 'qty' => float (kg threshold), 'price' => float (per kg) ).
+     * Sorted ascending by quantity. Empty when none are defined.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return array[]
+     */
+    public static function get_price_tiers( $post_id ) {
+        $rows = get_post_meta( $post_id, '_pc_price_tiers', true );
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+
+        $clean = array();
+        foreach ( $rows as $row ) {
+            $qty   = isset( $row['qty'] ) ? floatval( $row['qty'] ) : 0;
+            $price = isset( $row['price'] ) ? floatval( $row['price'] ) : 0;
+            if ( $qty > 0 && $price > 0 ) {
+                $clean[] = array( 'qty' => $qty, 'price' => $price );
+            }
+        }
+
+        usort( $clean, function ( $a, $b ) {
+            if ( $a['qty'] == $b['qty'] ) {
+                return 0;
+            }
+            return ( $a['qty'] < $b['qty'] ) ? -1 : 1;
+        } );
+
+        return $clean;
+    }
+
+    /**
+     * Resolve the price per kg for a given purchase quantity using the trade
+     * name's bulk pricing tiers, falling back to a base price when no tier
+     * applies or no tiers are defined.
+     *
+     * The applicable tier is the one with the largest quantity threshold that
+     * is still ≤ the quantity purchased. Below the smallest threshold, the
+     * smallest tier's price is used.
+     *
+     * @param int   $post_id        Trade name post ID.
+     * @param float $qty            Quantity being purchased (kg).
+     * @param float $fallback_price Price per kg to use when no tiers exist.
+     * @return float
+     */
+    public static function price_for_qty( $post_id, $qty, $fallback_price ) {
+        $tiers = self::get_price_tiers( $post_id );
+        if ( empty( $tiers ) ) {
+            return $fallback_price;
+        }
+
+        $price = $tiers[0]['price']; // Smallest-quantity price as the base.
+        foreach ( $tiers as $tier ) {
+            if ( $qty >= $tier['qty'] ) {
+                $price = $tier['price'];
+            }
+        }
+        return $price;
     }
 
     /**

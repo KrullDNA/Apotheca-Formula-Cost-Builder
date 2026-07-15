@@ -107,17 +107,39 @@ class PC_INCI {
                 continue;
             }
 
+            // Normalise this material's INCI midpoints to total 100% of the
+            // material, so SDS ranges (whose midpoints rarely sum to exactly
+            // 100) contribute in correct proportion.
+            $mid_sum = 0;
+            foreach ( $composition as $comp ) {
+                $mid_sum += floatval( $comp['percent'] );
+            }
+            if ( $mid_sum <= 0 ) {
+                $missing[] = get_the_title( $trade_id );
+                continue;
+            }
+
             foreach ( $composition as $comp ) {
                 // Merge INCI synonyms (Water/Aqua/Eau, …) so they total as one line.
                 $canonical    = self::canonicalize_inci( trim( $comp['inci'] ) );
                 $norm         = $canonical['key'];
-                $contribution = $ww * ( $comp['percent'] / 100 );
+                $material_pct = ( floatval( $comp['percent'] ) / $mid_sum ) * 100; // Normalised to 100% of material.
+                $contribution = $ww * ( $material_pct / 100 );
 
                 if ( ! isset( $totals[ $norm ] ) ) {
                     $totals[ $norm ]  = 0;
                     $display[ $norm ] = $canonical['display'];
                 }
                 $totals[ $norm ] += $contribution;
+            }
+        }
+
+        // Normalise the whole declaration to total 100% (percentages are for
+        // reference/ordering only; scaling is uniform so it preserves order).
+        $grand_total = array_sum( $totals );
+        if ( $grand_total > 0 ) {
+            foreach ( $totals as $key => $val ) {
+                $totals[ $key ] = ( $val / $grand_total ) * 100;
             }
         }
 

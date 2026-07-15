@@ -150,6 +150,9 @@
                         $row.attr('data-usage-min', res.data.usage_min || '');
                         $row.attr('data-usage-max', res.data.usage_max || '');
 
+                        // Bulk pricing tiers for scale-up costing.
+                        $row.attr('data-price-tiers', JSON.stringify(res.data.price_tiers || []));
+
                         // A fresh fetch is by definition not stale.
                         $row.find('.pc-stale-badge').remove();
 
@@ -199,7 +202,7 @@
             });
 
             // INCI sub-row: edit %, add, remove, save.
-            this.$wrap.on('input change', '.pc-inci-sub-pct, .pc-inci-sub-name', function () {
+            this.$wrap.on('input change', '.pc-inci-sub-min, .pc-inci-sub-max, .pc-inci-sub-name', function () {
                 var $panel = $(this).closest('.pc-inci-panel');
                 self.recalcInciTotals($panel, $panel.closest('.pc-inci-subrow').prev('.pc-row'));
             });
@@ -298,6 +301,11 @@
 
             // Re-check warnings when a Function is picked (preservative check).
             this.$wrap.on('change', '.pc-field-function', function () {
+                self.recalcWarnings();
+            });
+
+            // Re-check warnings when the anhydrous / self-preserving box is toggled.
+            $(document).on('change', '#pc-preservative-ack', function () {
                 self.recalcWarnings();
             });
 
@@ -573,18 +581,24 @@
             // required kg up to the next MOQ multiple, matching the
             // Batch Costings widget's batch_cost calculation.
             var batchIngredientCost = 0;
+            var self = this;
             this.$body.find('.pc-row').each(function () {
-                var ww    = parseFloat($(this).find('.pc-field-ww').val()) || 0;
-                var price = parseFloat($(this).find('.pc-field-price').val()) || 0;
-                var moq   = parseFloat($(this).find('.pc-field-moq').val()) || 0;
+                var $r    = $(this);
+                var ww    = parseFloat($r.find('.pc-field-ww').val()) || 0;
+                var price = parseFloat($r.find('.pc-field-price').val()) || 0;
+                var moq   = parseFloat($r.find('.pc-field-moq').val()) || 0;
 
                 var kgNeeded = batchSizeWithWaste > 0 ? (ww / 100) * batchSizeWithWaste : 0;
-                if (kgNeeded <= 0 || price <= 0) {
+                if (kgNeeded <= 0) {
                     return;
                 }
 
                 var kgToPurchase = moq > 0 ? Math.ceil(kgNeeded / moq) * moq : kgNeeded;
-                batchIngredientCost += kgToPurchase * price;
+                var unitPrice    = self.priceForQty(self.readTiers($r), kgToPurchase, price);
+                if (unitPrice <= 0) {
+                    return;
+                }
+                batchIngredientCost += kgToPurchase * unitPrice;
             });
 
             var totalBatchCost = batchIngredientCost + facilityCosts + labour + miscCosts + (packagingUnitCost * unitsPerBatch);
@@ -620,10 +634,37 @@
                     ph: $r.find('.pc-field-ph').val() || '',
                     fn: $r.find('.pc-field-function').val() || '',
                     usageMin: parseFloat($r.attr('data-usage-min')),
-                    usageMax: parseFloat($r.attr('data-usage-max'))
+                    usageMax: parseFloat($r.attr('data-usage-max')),
+                    tiers: PC.readTiers($r)
                 });
             });
             return rows;
+        },
+
+        /* ──────────────────────────────
+         * Bulk pricing tiers
+         * ────────────────────────────── */
+        readTiers: function ($row) {
+            var raw = $row.attr('data-price-tiers');
+            if (!raw) return [];
+            try {
+                var tiers = JSON.parse(raw);
+                return Array.isArray(tiers) ? tiers : [];
+            } catch (e) {
+                return [];
+            }
+        },
+
+        // Price per kg for a purchased quantity, using tiers if present.
+        priceForQty: function (tiers, qty, fallback) {
+            if (!tiers || !tiers.length) return fallback;
+            var price = parseFloat(tiers[0].price) || fallback;
+            tiers.forEach(function (t) {
+                if (qty >= (parseFloat(t.qty) || 0)) {
+                    price = parseFloat(t.price) || price;
+                }
+            });
+            return price;
         },
 
         /* ──────────────────────────────
@@ -677,6 +718,7 @@
          * Batch Size Sweet Spot: unit cost at candidate batch sizes
          * ────────────────────────────── */
         renderSweetSpot: function (currency, wastePct) {
+            var self = this;
             var $box = $('#pc-sweet-spot');
             if (!$box.length) return;
 
@@ -706,9 +748,11 @@
                 var ingCost = 0;
                 rows.forEach(function (r) {
                     var kgNeeded = (r.ww / 100) * sizeWaste;
-                    if (kgNeeded <= 0 || r.price <= 0) return;
+                    if (kgNeeded <= 0) return;
                     var kgBuy = r.moq > 0 ? Math.ceil(kgNeeded / r.moq) * r.moq : kgNeeded;
-                    ingCost += kgBuy * r.price;
+                    var unitPrice = self.priceForQty(r.tiers, kgBuy, r.price);
+                    if (unitPrice <= 0) return;
+                    ingCost += kgBuy * unitPrice;
                 });
 
                 var total    = ingCost + labour + facilityCosts + miscCosts + (packagingUnitCost * units);
@@ -834,11 +878,12 @@
                 }
             });
 
-            // Preservative present?
+            // Preservative present? (skip the reminder if acknowledged as anhydrous / self-preserving)
+            var acknowledged = $('#pc-preservative-ack').is(':checked');
             var hasPreservative = rows.some(function (r) {
                 return /preserv/i.test(r.fn);
             });
-            if (!hasPreservative) {
+            if (!hasPreservative && !acknowledged) {
                 warnings.push('No ingredient has the Function "Preservative" — confirm this formula is self-preserving or anhydrous.');
             }
 
@@ -937,61 +982,96 @@
 
         renderInciPanel: function ($panel, data, $row) {
             var self    = this;
-            var comp    = (data.composition && data.composition.length) ? data.composition : [{ inci: '', percent: '' }];
+            var comp    = (data.composition && data.composition.length) ? data.composition : [{ inci: '', percent_min: '', percent_max: '' }];
             var tradeId = $row.find('.pc-field-trade-name').val();
             var title   = $('<span>').text(data.title || 'this raw material').html();
 
             var html = '<div class="pc-inci-panel-head">INCI breakdown for <strong>' + title +
-                '</strong> — enter each INCI as a <strong>% of the raw material</strong> (from its SDS). Should total 100%.</div>';
+                '</strong> — enter each INCI as a <strong>Min–Max % of the raw material</strong> (from its SDS). ' +
+                'The midpoint is used for label ordering, and the constituents are normalised to total 100% of the material.</div>';
             html += '<table class="pc-inci-sub-table"><thead><tr>' +
-                '<th>INCI Name</th><th>% of material</th><th>&asymp; % in formula</th><th></th>' +
+                '<th>INCI Name</th><th>Min %</th><th>Max %</th><th>Midpoint</th><th>&asymp; % in formula</th><th></th>' +
                 '</tr></thead><tbody class="pc-inci-sub-body"></tbody></table>';
             html += '<div class="pc-inci-sub-foot">' +
                 '<button type="button" class="button pc-inci-sub-add">+ Add INCI</button> ' +
                 '<span class="pc-inci-sub-total"></span> ' +
                 '<button type="button" class="button button-primary pc-inci-sub-save" data-trade="' + parseInt(tradeId, 10) + '">Save to raw material</button> ' +
                 '<span class="pc-inci-sub-status"></span>' +
-                '<p class="description">Saving updates this raw material\'s INCI composition everywhere it is used, and the label declaration re-orders accordingly. If the SDS gives a range, enter the nominal (typical) value. Reload the product to refresh the INCI Label Declaration preview below.</p>' +
+                '<p class="description">For an exact value, put the same number in Min and Max. Saving updates this raw material\'s INCI composition everywhere it is used, and the label declaration re-orders accordingly. Reload the product to refresh the INCI Label Declaration preview below.</p>' +
                 '</div>';
 
             $panel.html(html);
 
             var $body = $panel.find('.pc-inci-sub-body');
-            comp.forEach(function (r) { self.addInciSubRow($body, r.inci, r.percent); });
+            comp.forEach(function (r) {
+                var min = (r.percent_min != null && r.percent_min !== '') ? r.percent_min : r.percent;
+                var max = (r.percent_max != null && r.percent_max !== '') ? r.percent_max : r.percent;
+                self.addInciSubRow($body, r.inci, min, max);
+            });
             self.recalcInciTotals($panel, $row);
         },
 
-        addInciSubRow: function ($body, inci, percent) {
+        addInciSubRow: function ($body, inci, min, max) {
             var $tr = $(
                 '<tr class="pc-inci-sub-row">' +
                 '<td><input type="text" class="pc-inci-sub-name widefat" placeholder="e.g. Glycerin"></td>' +
-                '<td><input type="number" step="any" min="0" max="100" class="pc-inci-sub-pct" style="width:90px;"></td>' +
+                '<td><input type="number" step="any" min="0" max="100" class="pc-inci-sub-min" style="width:80px;"></td>' +
+                '<td><input type="number" step="any" min="0" max="100" class="pc-inci-sub-max" style="width:80px;"></td>' +
+                '<td class="pc-inci-sub-mid">&mdash;</td>' +
                 '<td class="pc-inci-sub-contrib">&mdash;</td>' +
                 '<td><button type="button" class="button pc-inci-sub-remove" title="Remove">&times;</button></td>' +
                 '</tr>'
             );
             $tr.find('.pc-inci-sub-name').val(inci || '');
-            if (percent !== '' && percent != null && !isNaN(parseFloat(percent))) {
-                $tr.find('.pc-inci-sub-pct').val(parseFloat(percent));
+            if (min !== '' && min != null && !isNaN(parseFloat(min))) {
+                $tr.find('.pc-inci-sub-min').val(parseFloat(min));
+            }
+            if (max !== '' && max != null && !isNaN(parseFloat(max))) {
+                $tr.find('.pc-inci-sub-max').val(parseFloat(max));
             }
             $body.append($tr);
         },
 
-        recalcInciTotals: function ($panel, $row) {
-            var rowWW = ($row && $row.length) ? (parseFloat($row.find('.pc-field-ww').val()) || 0) : 0;
-            var total = 0;
+        // Midpoint of a sub-row (falls back to whichever single box is filled).
+        inciRowMid: function ($subRow) {
+            var minRaw = $subRow.find('.pc-inci-sub-min').val();
+            var maxRaw = $subRow.find('.pc-inci-sub-max').val();
+            var hasMin = minRaw !== '' && !isNaN(parseFloat(minRaw));
+            var hasMax = maxRaw !== '' && !isNaN(parseFloat(maxRaw));
+            if (!hasMin && !hasMax) return null;
+            var min = hasMin ? parseFloat(minRaw) : parseFloat(maxRaw);
+            var max = hasMax ? parseFloat(maxRaw) : parseFloat(minRaw);
+            if (max < min) { var t = min; min = max; max = t; }
+            return (min + max) / 2;
+        },
 
+        recalcInciTotals: function ($panel, $row) {
+            var self  = this;
+            var rowWW = ($row && $row.length) ? (parseFloat($row.find('.pc-field-ww').val()) || 0) : 0;
+
+            // First pass: midpoints and their sum (for normalisation).
+            var midSum = 0;
             $panel.find('.pc-inci-sub-row').each(function () {
-                var pct = parseFloat($(this).find('.pc-inci-sub-pct').val()) || 0;
-                total += pct;
-                var contrib = rowWW * pct / 100;
+                var mid = self.inciRowMid($(this));
+                $(this).data('mid', mid);
+                $(this).find('.pc-inci-sub-mid').text(mid != null ? mid.toFixed(2) : '—');
+                if (mid != null) { midSum += mid; }
+            });
+
+            // Second pass: normalise midpoints to 100% of material → contribution in formula.
+            $panel.find('.pc-inci-sub-row').each(function () {
+                var mid = $(this).data('mid');
+                var normalised = (mid != null && midSum > 0) ? (mid / midSum) * 100 : 0;
+                var contrib = rowWW * normalised / 100;
                 $(this).find('.pc-inci-sub-contrib').text(contrib > 0 ? contrib.toFixed(3) + '%' : '—');
             });
 
             var $t = $panel.find('.pc-inci-sub-total');
-            $t.text('Total: ' + total.toFixed(2) + '% of material');
-            var ok = Math.abs(total - 100) <= 0.01;
-            $t.toggleClass('pc-total-bad', !ok).toggleClass('pc-total-ok', ok);
+            if (midSum > 0) {
+                $t.text('Midpoints total ' + midSum.toFixed(2) + '% → normalised to 100%').addClass('pc-total-ok').removeClass('pc-total-bad');
+            } else {
+                $t.text('Enter a % for each INCI').removeClass('pc-total-ok pc-total-bad');
+            }
         },
 
         updateInciContribution: function ($row) {
@@ -1009,9 +1089,10 @@
 
             $panel.find('.pc-inci-sub-row').each(function () {
                 var name = $.trim($(this).find('.pc-inci-sub-name').val());
-                var pct  = $(this).find('.pc-inci-sub-pct').val();
+                var min  = $(this).find('.pc-inci-sub-min').val();
+                var max  = $(this).find('.pc-inci-sub-max').val();
                 if (name) {
-                    rows.push({ inci: name, percent: pct });
+                    rows.push({ inci: name, percent_min: min, percent_max: max });
                 }
             });
 

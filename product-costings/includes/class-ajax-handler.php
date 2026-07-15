@@ -112,6 +112,7 @@ class PC_Ajax_Handler {
             'natural_origin' => PC_Trade_Data::get( $post_id, 'natural_origin' ),
             'usage_min'      => PC_Trade_Data::get( $post_id, 'usage_min' ),
             'usage_max'      => PC_Trade_Data::get( $post_id, 'usage_max' ),
+            'price_tiers'    => PC_Trade_Data::get_price_tiers( $post_id ),
             'title'          => get_the_title( $post_id ),
         ) );
     }
@@ -163,9 +164,30 @@ class PC_Ajax_Handler {
             if ( '' === $inci ) {
                 continue;
             }
+
+            // Range (min–max % of material). Accept a single value in either box.
+            $min = isset( $row['percent_min'] ) && '' !== $row['percent_min'] ? floatval( $row['percent_min'] ) : null;
+            $max = isset( $row['percent_max'] ) && '' !== $row['percent_max'] ? floatval( $row['percent_max'] ) : null;
+
+            if ( null === $min && null === $max ) {
+                continue; // No percentage given.
+            }
+            if ( null === $min ) {
+                $min = $max;
+            }
+            if ( null === $max ) {
+                $max = $min;
+            }
+            if ( $max < $min ) {
+                $tmp = $min;
+                $min = $max;
+                $max = $tmp;
+            }
+
             $clean[] = array(
-                'inci'    => $inci,
-                'percent' => floatval( $row['percent'] ?? 0 ),
+                'inci'        => $inci,
+                'percent_min' => $min,
+                'percent_max' => $max,
             );
         }
 

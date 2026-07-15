@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.3.0)
+# Product Costings — User Guide (v1.5.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -68,8 +68,12 @@ A warning panel under the table checks your formula as you type:
 - **Total ≠ 100%** — the batch won't be right; fix before manufacturing.
 - **Usage-rate violations** — any row outside the min/max usage range set on its
   Trade Name is flagged and its row is tinted red (see §3.2).
-- **No preservative** — no row has the Function "Preservative". Ignore for anhydrous
-  or self-preserving formulas; otherwise, add one.
+- **No preservative** — no row has the Function "Preservative". If the formula is
+  genuinely anhydrous or self-preserving, tick the **"This formula is anhydrous or
+  self-preserving"** checkbox below the table to acknowledge it and hide the reminder
+  (saved per product). Otherwise, set the Function of your preservative row to
+  "Preservative". The checkbox is an acknowledgement only — it does not replace CPSR
+  or challenge-test (ISO 11930) sign-off.
 - **pH compatibility window** — the plugin intersects every ingredient's pH range and
   shows you the window in which *all* ingredients are stable (e.g. "4.5 – 6.0"). You
   get a warning if the ranges don't overlap at all, or if your product's target
@@ -83,12 +87,16 @@ Each ingredient row has an **INCI** button (next to Duplicate/Remove). Click it 
 expand a sub-panel that pulls in that raw material's individual INCI names as editable
 rows, so you can perfect the label declaration straight from the SDS:
 
-- **INCI Name** and **% of material** — each constituent INCI and its percentage of
-  the raw material (not of the whole formula). These should total **100%** — a live
-  total tells you if they don't (green at 100%, red otherwise).
-- **≈ % in formula** — the resulting contribution to the finished product
-  (`row %w/w × % of material`), updated live. This is the number that drives label
-  ordering.
+- **INCI Name**, **Min %** and **Max %** — each constituent INCI and its percentage
+  **of the raw material** (not of the whole formula), entered as the range from the
+  SDS. For an exact value, put the same number in both boxes. *(Min/Max ranges added
+  in 1.5.0.)*
+- **Midpoint** — the value used for the calculation (`(Min + Max) ÷ 2`), shown live.
+- **≈ % in formula** — the resulting contribution to the finished product, updated
+  live. This is the number that drives label ordering. It uses the **normalised**
+  midpoint: each material's constituents are automatically scaled to total 100% of the
+  material, so SDS ranges (whose midpoints rarely sum to exactly 100) still contribute
+  in correct proportion. The footer shows `Midpoints total X% → normalised to 100%`.
 - **+ Add INCI** / **×** — add or remove constituents (e.g. break a preservative
   blend into its parts).
 - **Save to raw material** — writes the breakdown back to the **Trade Name**, because
@@ -97,12 +105,12 @@ rows, so you can perfect the label declaration straight from the SDS:
   this material**, so you only enter it once. Reload the product afterwards to refresh
   the INCI Label Declaration preview (§5).
 
-The panel is seeded from whatever the plugin already knows — your structured
-composition if you've set one, otherwise the auto-detected/­split INCI field (§3.1).
-So the typical workflow is: open the breakdown, replace the even-split estimates with
-the real SDS percentages, and Save. If the SDS gives a **range** for a constituent,
-enter the nominal (typical) value — a single number is what produces a deterministic,
-correctly-ordered label.
+Because each material is normalised to 100% and your formula %w/w totals 100%, the
+**whole INCI declaration always totals 100%** (the declaration is also normalised as a
+final safety step). The panel is seeded from whatever the plugin already knows — your
+structured composition if you've set one, otherwise the auto-detected/­split INCI field
+(§3.1). Typical workflow: open the breakdown, enter the SDS Min–Max for each INCI, and
+Save.
 
 > Tip: you only need to do this for **blends** (materials with more than one INCI).
 > Single-substance materials are already 100% one name and need no attention.
@@ -155,6 +163,29 @@ data.
 **Usage Rate Limits** — the recommended usage range in a finished formula (% w/w),
 from the supplier's documentation. Leave blank for no limit. The formula builder
 warns live whenever this material is used outside the range.
+
+### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
+
+Optional supplier price breaks for accurate scale-up costing. In the **Bulk Pricing**
+box, add rows of **Quantity from (kg)** → **Price per kg**, e.g.:
+
+| Quantity from (kg) | Price per kg |
+|---|---|
+| 1  | 50 |
+| 5  | 40 |
+| 20 | 30 |
+
+When a batch requires (after MOQ rounding) at least a tier's quantity, that tier's
+price per kg is used for the whole purchase. So a batch needing 2.2 kg pays $50/kg,
+one needing 6 kg pays $40/kg, and one needing 25 kg pays $30/kg — and the **Batch Size
+Sweet Spot** panel now reflects real bulk pricing as you scale up. Below the smallest
+tier, the smallest tier's price applies.
+
+Leave the table empty to use the single **Price/KG** field for all quantities (the
+default). Tiers, when present, drive every batch-cost figure (admin Cost Summary,
+Batch Costings widget, Costings Dashboard, Sweet Spot). The "Raw Material Cost per KG"
+line and Cost Drivers still use the nominal Price/KG, as they represent the formula's
+intrinsic cost rather than a specific purchase.
 
 ### 3.2 Where Used box *(new)*
 
