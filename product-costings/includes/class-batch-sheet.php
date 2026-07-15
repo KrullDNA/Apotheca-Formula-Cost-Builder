@@ -180,7 +180,9 @@ class PC_Batch_Sheet {
             $total_g = 0;
             foreach ( $rows as $row ) :
                 $n++;
-                $ww       = floatval( $row['percent_w_w'] ?? 0 );
+                $ww_raw   = $row['percent_w_w'] ?? '';
+                $is_qs    = ( '' !== $ww_raw && ! is_numeric( $ww_raw ) );
+                $ww       = $is_qs ? 0 : floatval( $ww_raw );
                 $trade_id = absint( $row['trade_name_id'] ?? 0 );
                 $target_g = ( $ww / 100 ) * $size_eff * 1000;
                 $total_g += $target_g;
@@ -189,8 +191,8 @@ class PC_Batch_Sheet {
                     <td><?php echo (int) $n; ?></td>
                     <td><?php echo esc_html( strtoupper( $row['phase'] ?? '' ) ); ?></td>
                     <td><?php echo esc_html( $trade_id ? get_the_title( $trade_id ) : '' ); ?></td>
-                    <td class="num"><?php echo esc_html( number_format( $ww, 2 ) ); ?></td>
-                    <td class="num"><strong><?php echo esc_html( number_format( $target_g, 2 ) ); ?></strong></td>
+                    <td class="num"><?php echo $is_qs ? 'q.s.' : esc_html( number_format( $ww, 2 ) ); ?></td>
+                    <td class="num"><strong><?php echo $is_qs ? 'q.s.' : esc_html( number_format( $target_g, 2 ) ); ?></strong></td>
                     <td></td>
                     <td></td>
                     <td></td>

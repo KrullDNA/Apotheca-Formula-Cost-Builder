@@ -104,10 +104,14 @@ class PC_Ajax_Handler {
             wp_send_json_error( 'Invalid trade name.' );
         }
 
+        // Prefer bulk pricing (effective MOQ + base per-kg) over the tn_* fields.
+        $eff_moq    = PC_Trade_Data::get_effective_moq( $post_id );
+        $base_price = PC_Trade_Data::get_base_price_per_kg( $post_id );
+
         wp_send_json_success( array(
             'ph'             => PC_Trade_Data::get( $post_id, 'ph' ),
-            'price_per_kg'   => PC_Trade_Data::get( $post_id, 'price_per_kg' ),
-            'moq'            => PC_Trade_Data::get( $post_id, 'moq' ),
+            'price_per_kg'   => ( null !== $base_price ) ? $base_price : PC_Trade_Data::get( $post_id, 'price_per_kg' ),
+            'moq'            => ( null !== $eff_moq ) ? $eff_moq : PC_Trade_Data::get( $post_id, 'moq' ),
             'function1'      => PC_Trade_Data::get( $post_id, 'function1' ),
             'natural_origin' => PC_Trade_Data::get( $post_id, 'natural_origin' ),
             'usage_min'      => PC_Trade_Data::get( $post_id, 'usage_min' ),

@@ -57,6 +57,23 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.6
+- The **% w/w** column accepts `q.s.` (quantum satis) as well as numbers — the only
+  non-numeric value allowed; other text is rejected. q.s. rows count as 0 in every
+  calculation and show as "q.s." on the admin/front-end formula tables and the batch
+  sheet.
+
+### 1.10.5
+- Admin Formula Ingredients table now reflects bulk pricing: the **MOQ** and **Price/KG**
+  columns derive from the Trade Name's bulk pricing (smallest quantity and its per-kg
+  rate) on render and on Refresh Ingredient Data / ingredient select, falling back to
+  the `tn_moq` / `tn_price_per_kg` fields when a material has no bulk pricing.
+
+### 1.10.4
+- Cost Summary: clarified the Waste % note — ingredient quantities/costs use batch ×
+  (1 + waste%), units use the batch size without waste, so wasted material is paid for
+  and spread across the sellable units (raising the final unit cost).
+
 ### 1.10.3
 - Front-end MOQ column shows the actual value instead of rounding to 2 dp (e.g. 0.017
   kg now displays as "0.017 kg", not "0.02 kg"); trailing zeros are stripped.
