@@ -50,6 +50,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.9.1
+- Added a live **Kg / batch** column to the Formula Ingredients table showing each
+  ingredient's quantity needed for the current batch (with a footer total), alongside
+  the fuller Batch Requirements table.
+
 ### 1.9.0
 - **Batch Requirements** table in the Cost Summary: a live per-ingredient purchasing
   list showing kg needed, kg to buy (cheapest pack combination, with any spare stock

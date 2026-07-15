@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.9.0)
+# Product Costings — User Guide (v1.9.1)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -44,6 +44,7 @@ Each row is one raw material in the formula:
 | **Trade Name** | Type 2+ characters to search your Trade Names library. Picking one auto-fills pH, Price/KG, MOQ and Nat. Origin from the material's record. |
 | **Function** | Dropdown managed under **Products → Formula Functions**. Pre-selected if the Trade Name has a default function. |
 | pH / Price/KG / MOQ / Nat. Origin | Read-only snapshots pulled from the Trade Name when you picked it. |
+| **Kg / batch** | *(1.9.1)* Live — the kg of this ingredient needed for the current batch (its %w/w × batch size including waste). A total shows in the footer. |
 
 Row buttons: **⎘ duplicate** (copies everything, including unsaved edits) and
 **🗑 remove**.

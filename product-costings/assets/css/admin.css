@@ -58,6 +58,8 @@
 .pc-col-ph     { width: 90px; }
 .pc-col-price  { width: 100px; }
 .pc-col-moq    { width: 80px; }
+.pc-col-kgbatch { width: 90px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pc-cell-kgbatch { font-weight: 600; }
 .pc-col-actions { width: 80px; white-space: nowrap; }
 
 /* To-100% checkbox */

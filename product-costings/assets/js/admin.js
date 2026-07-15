@@ -604,9 +604,25 @@
             $('#pc-batch-cost').text(totalBatchCost > 0 ? currency + totalBatchCost.toFixed(2) : '—');
             $('#pc-cost-unit').text(costPerUnit > 0 ? currency + costPerUnit.toFixed(4) : '—');
 
+            this.updateRowKgBatch(batchSizeWithWaste);
             this.renderRequirements(batchSizeWithWaste, currency);
             this.renderCostDrivers(currency);
             this.renderSweetSpot(currency, wastePct);
+        },
+
+        /* ──────────────────────────────
+         * Per-row "Kg / batch" column in the formula table
+         * ────────────────────────────── */
+        updateRowKgBatch: function (batchSizeWithWaste) {
+            var total = 0;
+            this.$body.find('.pc-row').each(function () {
+                var $r   = $(this);
+                var ww   = parseFloat($r.find('.pc-field-ww').val()) || 0;
+                var need = batchSizeWithWaste > 0 ? (ww / 100) * batchSizeWithWaste : 0;
+                total += need;
+                $r.find('.pc-cell-kgbatch').text(need > 0 ? need.toFixed(3) + ' kg' : '—');
+            });
+            $('#pc-total-kgbatch').html(total > 0 ? '<strong>' + total.toFixed(3) + ' kg</strong>' : '');
         },
 
         /* ──────────────────────────────

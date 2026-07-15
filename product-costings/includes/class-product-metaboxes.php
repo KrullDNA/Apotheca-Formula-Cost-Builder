@@ -78,6 +78,7 @@ class PC_Product_Metaboxes {
                         <th class="pc-col-price"><?php esc_html_e( 'Price/KG', 'product-costings' ); ?></th>
                         <th class="pc-col-moq"><?php esc_html_e( 'MOQ', 'product-costings' ); ?></th>
                         <th class="pc-col-nat-origin"><?php esc_html_e( 'Nat. Origin %', 'product-costings' ); ?></th>
+                        <th class="pc-col-kgbatch"><?php esc_html_e( 'Kg / batch', 'product-costings' ); ?></th>
                         <th class="pc-col-actions">&nbsp;</th>
                     </tr>
                 </thead>
@@ -94,7 +95,9 @@ class PC_Product_Metaboxes {
                     <tr>
                         <td colspan="3" class="pc-total-label"><strong><?php esc_html_e( 'Total % w/w:', 'product-costings' ); ?></strong></td>
                         <td id="pc-total-ww"><strong>0.00</strong></td>
-                        <td colspan="7"></td>
+                        <td colspan="6"></td>
+                        <td id="pc-total-kgbatch"></td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>
@@ -165,6 +168,7 @@ class PC_Product_Metaboxes {
                 <td class="pc-col-nat-origin">
                     <input type="text" name="pc_rows[{{data.i}}][natural_origin]" value="" class="pc-field-natural-origin" readonly>
                 </td>
+                <td class="pc-col-kgbatch pc-cell-kgbatch">&mdash;</td>
                 <td class="pc-col-actions">
                     <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                     <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
@@ -250,6 +254,7 @@ class PC_Product_Metaboxes {
             <td class="pc-col-nat-origin">
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][natural_origin]" value="<?php echo esc_attr( $nat_orig ); ?>" class="pc-field-natural-origin" readonly>
             </td>
+            <td class="pc-col-kgbatch pc-cell-kgbatch">&mdash;</td>
             <td class="pc-col-actions">
                 <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                 <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
