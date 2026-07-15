@@ -299,6 +299,22 @@
                 self.updateInciContribution($(this).closest('.pc-row'));
             });
 
+            // Validate %w/w on blur: allow a number or exactly "q.s." — nothing else.
+            this.$wrap.on('blur', '.pc-field-ww', function () {
+                var $f = $(this);
+                if ($f.prop('readonly')) { return; }
+                var v = $.trim($f.val());
+                if (v === '') { return; }
+                if (/^q\.?\s*s\.?$/i.test(v)) {
+                    $f.val('q.s.');
+                } else if (isNaN(parseFloat(v))) {
+                    $f.val(''); // Not a number and not q.s. — clear it.
+                }
+                self.recalcTo100();
+                self.recalcCostSummary();
+                self.recalcWarnings();
+            });
+
             // Re-check warnings when a Function is picked (preservative check).
             this.$wrap.on('change', '.pc-field-function', function () {
                 self.recalcWarnings();

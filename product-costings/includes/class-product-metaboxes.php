@@ -141,7 +141,7 @@ class PC_Product_Metaboxes {
                     <input type="text" name="pc_rows[{{data.i}}][phase]" value="" placeholder="A" class="pc-field-phase" maxlength="5">
                 </td>
                 <td class="pc-col-ww">
-                    <input type="number" name="pc_rows[{{data.i}}][percent_w_w]" value="" step="any" min="0" max="100" class="pc-field-ww" placeholder="0.00">
+                    <input type="text" inputmode="decimal" name="pc_rows[{{data.i}}][percent_w_w]" value="" class="pc-field-ww" placeholder="0.00 / q.s.">
                 </td>
                 <td class="pc-col-trade">
                     <select name="pc_rows[{{data.i}}][trade_name_id]" class="pc-field-trade-name">
@@ -231,7 +231,7 @@ class PC_Product_Metaboxes {
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][phase]" value="<?php echo esc_attr( $phase ); ?>" placeholder="A" class="pc-field-phase" maxlength="5">
             </td>
             <td class="pc-col-ww">
-                <input type="number" name="pc_rows[<?php echo (int) $i; ?>][percent_w_w]" value="<?php echo esc_attr( $ww ); ?>" step="any" min="0" max="100" class="pc-field-ww" placeholder="0.00" <?php echo $is_to_100 ? 'readonly' : ''; ?>>
+                <input type="text" inputmode="decimal" name="pc_rows[<?php echo (int) $i; ?>][percent_w_w]" value="<?php echo esc_attr( $ww ); ?>" class="pc-field-ww" placeholder="0.00 / q.s." <?php echo $is_to_100 ? 'readonly' : ''; ?>>
                 <?php if ( $is_to_100 ) : ?>
                     <span class="pc-to100-badge"><?php esc_html_e( 'to 100%', 'product-costings' ); ?></span>
                 <?php endif; ?>
@@ -356,7 +356,7 @@ class PC_Product_Metaboxes {
                 foreach ( $raw_rows as $row ) {
                     $clean[] = array(
                         'phase'          => sanitize_text_field( $row['phase'] ?? '' ),
-                        'percent_w_w'    => floatval( $row['percent_w_w'] ?? 0 ),
+                        'percent_w_w'    => self::normalize_ww( $row['percent_w_w'] ?? '' ),
                         'trade_name_id'  => absint( $row['trade_name_id'] ?? 0 ),
                         'function'       => sanitize_text_field( $row['function'] ?? '' ),
                         'ph'             => sanitize_text_field( $row['ph'] ?? '' ),
@@ -384,5 +384,24 @@ class PC_Product_Metaboxes {
                 delete_post_meta( $post_id, '_pc_preservative_ack' );
             }
         }
+    }
+
+    /**
+     * Normalise a %w/w input: "q.s." (quantum satis, in any casing/spacing)
+     * is kept as the string 'q.s.'; anything else becomes a float (invalid
+     * text → 0). q.s. rows count as 0 in all calculations.
+     *
+     * @param mixed $value Raw input.
+     * @return string|float 'q.s.' or a float.
+     */
+    private static function normalize_ww( $value ) {
+        $value = trim( (string) $value );
+        if ( '' === $value ) {
+            return 0;
+        }
+        if ( preg_match( '/^q\.?\s*s\.?$/i', $value ) ) {
+            return 'q.s.';
+        }
+        return floatval( $value );
     }
 }

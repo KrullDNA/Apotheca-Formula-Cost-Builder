@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.6
+- The **% w/w** column accepts `q.s.` (quantum satis) as well as numbers — the only
+  non-numeric value allowed; other text is rejected. q.s. rows count as 0 in every
+  calculation and show as "q.s." on the admin/front-end formula tables and the batch
+  sheet.
+
 ### 1.10.5
 - Admin Formula Ingredients table now reflects bulk pricing: the **MOQ** and **Price/KG**
   columns derive from the Trade Name's bulk pricing (smallest quantity and its per-kg

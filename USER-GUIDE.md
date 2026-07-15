@@ -40,7 +40,7 @@ Each row is one raw material in the formula:
 | ☰ | Drag handle — reorder rows within the table. |
 | **To 100%** | Tick on exactly one row (usually water). Its %w/w is calculated automatically as `100 − (sum of all other rows)` and updates live as you edit. |
 | **Phase** | Phase letter (A, B, C…). The front-end table groups and colour-codes by phase. |
-| **% w/w** | The inclusion rate. The footer shows the running total — green at 100%, red otherwise. |
+| **% w/w** | The inclusion rate. Accepts a number **or** `q.s.` *(1.10.6)* for quantum-satis ingredients (fragrance, pH adjuster, etc.); q.s. counts as 0 in all calculations and displays as "q.s." on the formula table, batch sheet, and front-end. The footer shows the running total of the numeric rows. |
 | **Trade Name** | Type 2+ characters to search your Trade Names library. Picking one auto-fills pH, Price/KG, MOQ and Nat. Origin from the material's record. |
 | **Function** | Dropdown managed under **Products → Formula Functions**. Pre-selected if the Trade Name has a default function. |
 | pH / Price/KG / MOQ / Nat. Origin | Read-only snapshots pulled from the Trade Name when you picked it. |

@@ -379,7 +379,9 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                     <?php foreach ( $rows as $row ) : ?>
                         <?php
                         $phase     = isset( $row['phase'] ) ? $row['phase'] : '';
-                        $ww        = isset( $row['percent_w_w'] ) ? floatval( $row['percent_w_w'] ) : 0;
+                        $ww_raw    = isset( $row['percent_w_w'] ) ? $row['percent_w_w'] : '';
+                        $is_qs     = ( '' !== $ww_raw && ! is_numeric( $ww_raw ) ); // "q.s." etc.
+                        $ww        = $is_qs ? 0 : floatval( $ww_raw );
                         $total_ww += $ww;
                         $trade_id  = isset( $row['trade_name_id'] ) ? (int) $row['trade_name_id'] : 0;
                         $fn        = isset( $row['function'] ) ? $row['function'] : '';
@@ -417,7 +419,7 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         ?>
                         <tr<?php echo $phase ? ' data-phase="' . esc_attr( strtoupper( $phase ) ) . '"' : ''; ?>>
                             <td class="pc-ft-phase"><?php echo esc_html( $phase ); ?></td>
-                            <td class="pc-ft-ww"><?php echo $ww > 0 ? esc_html( $ww . '%' ) : ''; ?></td>
+                            <td class="pc-ft-ww"><?php echo $is_qs ? 'q.s.' : ( $ww > 0 ? esc_html( $ww . '%' ) : '' ); ?></td>
                             <td class="pc-ft-trade"><?php echo esc_html( $trade_name ); ?></td>
                             <td class="pc-ft-function"><?php echo esc_html( $fn ); ?></td>
                             <td class="pc-ft-ph"><?php echo esc_html( $ph ); ?></td>
