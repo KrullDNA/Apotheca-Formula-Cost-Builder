@@ -68,12 +68,13 @@ class PC_Margin_Dashboard {
             if ( $price <= 0 ) {
                 continue;
             }
-            $moq  = floatval( PC_Trade_Data::get( $id, 'moq' ) );
-            $pack = $moq > 0 ? $moq : 1;
+            $moq = floatval( PC_Trade_Data::get( $id, 'moq' ) );
+            $qty = $moq > 0 ? $moq : 1;
 
-            // Stored price is the TOTAL pack price = per-kg × pack size.
+            // The existing field is a per-kg price; store it as a per-kg break
+            // that applies from the MOQ quantity.
             update_post_meta( $id, '_pc_price_tiers', array(
-                array( 'qty' => $pack, 'price' => $price * $pack, 'unit' => 'kg' ),
+                array( 'qty' => $qty, 'unit' => 'kg', 'price_per_kg' => $price, 'pack_price' => 0 ),
             ) );
             $updated++;
         }

@@ -387,6 +387,15 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         $price     = isset( $row['price_per_kg'] ) ? $row['price_per_kg'] : '';
                         $moq       = isset( $row['moq'] ) ? $row['moq'] : '';
 
+                        // Prefer the minimum quantity from the bulk pricing table
+                        // (the real minimum order) over the old MOQ snapshot.
+                        if ( $trade_id ) {
+                            $eff_moq = PC_Trade_Data::get_effective_moq( $trade_id );
+                            if ( null !== $eff_moq ) {
+                                $moq = $eff_moq;
+                            }
+                        }
+
                         $trade_name = $trade_id ? get_the_title( $trade_id ) : '';
                         $kg_batch   = $batch_size > 0 ? ( $ww / 100 ) * $batch_size : 0;
 

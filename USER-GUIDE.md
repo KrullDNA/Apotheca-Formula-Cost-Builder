@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.9.3)
+# Product Costings — User Guide (v1.10.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -167,22 +167,39 @@ warns live whenever this material is used outside the range.
 
 ### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
 
-Optional supplier pack sizes for accurate scale-up costing. In the **Bulk Pricing**
-box, add a row per pack with a **Unit** (Kg or L), a **Pack size**, and the **Pack
-price (total)** — the total you pay for that whole pack, exactly as the supplier quotes
-it. The **≈ Price / kg** column shows `total ÷ pack size` so you can see the per-kg
-rate. Example:
+Optional supplier pricing for accurate scale-up costing. Each row is a quantity break
+with a **Unit** (Kg or L), a **Qty from**, and **one** price — either a **Price / kg**
+or a **Pack price** (never both; a warning appears if you fill both). Two supplier
+styles are supported *(dual pricing added in 1.10.0)*:
 
-| Unit | Pack size | Pack price (total) | ≈ Price / kg |
-|---|---|---|---|
-| Kg | 1  | 50  | 50.00 |
-| Kg | 5  | 200 | 40.00 |
-| Kg | 20 | 600 | 30.00 |
+**A. Per-kg quantity breaks** — a price per kg that applies from a minimum quantity
+(the common wholesale format). Enter the **Price / kg** and leave Pack price blank.
+Costing buys the **exact kg needed** at the applicable rate, buying up to a higher
+break when its lower rate is cheaper.
 
-**Pack-based cheapest purchasing *(1.8.0)*.** Each pack is bought in **whole multiples**
-at its total price, packs of **different sizes may be combined**, and the plugin picks
-the **cheapest combination** that covers the kg needed. The pack sizes **replace MOQ**.
-Worked examples with the table above:
+| Unit | Qty from | Price / kg |
+|---|---|---|
+| Kg | 1  | 1053.08 |
+| Kg | 5  | 956.92 |
+| Kg | 10 | 821.92 |
+
+> Need 3 kg → 3 × 1053.08 = **3159.24**. Need 4.8 kg → buys **5 kg** at 956.92 =
+> **4784.60** (cheaper than 4.8 × 1053.08). Need 9.5 kg → buys **10 kg** at 821.92.
+
+**B. Pack sizes** — fixed packs bought whole. Enter the **Pack price** (total for the
+pack) and leave Price / kg blank. The **≈ Price / kg** column shows `total ÷ pack
+size`.
+
+| Unit | Qty from (pack size) | Pack price |
+|---|---|---|
+| Kg | 1  | 50  |
+| Kg | 5  | 200 |
+| Kg | 20 | 600 |
+
+**Pack-based cheapest purchasing.** Each pack is bought in **whole multiples**, packs
+of **different sizes may be combined**, and the plugin picks the **cheapest
+combination** that covers the kg needed. The rows **replace MOQ**. Worked examples with
+the pack table above:
 
 - Need **2.2 kg** → 3 × 1 kg = **$150**.
 - Need **4.2 kg** → 1 × 5 kg = **$200** (cheaper than 5 × 1 kg = $250).

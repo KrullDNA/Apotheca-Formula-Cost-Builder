@@ -65,7 +65,7 @@ class PC_Trade_Name_Fields {
         $currency = get_option( 'pc_currency_symbol', '$' );
         ?>
         <p class="description">
-            <?php esc_html_e( 'Optional supplier pack sizes. For each pack choose the Unit (Kg or L), the Pack size, and the TOTAL price you pay for that pack — e.g. a 1 kg pack for 200, a 5 kg pack for 968, a 20 kg pack for 3750. The "≈ Price / kg" column shows the total ÷ pack size so you can see the per-kg rate. Costing buys whole packs to cover each ingredient and picks the cheapest combination. The pack sizes replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
+            <?php esc_html_e( 'Optional supplier pricing. Each row is one quantity break. Set the Unit (Kg or L), the Quantity it applies from, and fill in EITHER a Price / kg OR a Pack price (total) — not both. Use Price / kg for supplier lists quoted per kg at quantity ranges (e.g. 1–4 kg = 1053.08/kg, 5–9 kg = 956.92/kg): costing buys the exact kg needed at the applicable rate. Use Pack price for fixed pack sizes bought whole (e.g. a 20 kg pack for 3750): costing buys whole packs and can combine sizes. It always picks the cheapest overall. These replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
         </p>
         <p>
             <label>
@@ -78,19 +78,22 @@ class PC_Trade_Name_Fields {
             <thead>
                 <tr>
                     <th style="width:24px;">&nbsp;</th>
-                    <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Pack size', 'product-costings' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Pack price (total)', 'product-costings' ); ?></th>
-                    <th style="width:120px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
-                    <th style="width:50px;">&nbsp;</th>
+                    <th style="width:70px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Qty from', 'product-costings' ); ?></th>
+                    <th style="width:110px;"><?php esc_html_e( 'Price / kg', 'product-costings' ); ?></th>
+                    <th style="width:110px;"><?php esc_html_e( 'Pack price', 'product-costings' ); ?></th>
+                    <th style="width:130px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
+                    <th style="width:40px;">&nbsp;</th>
                 </tr>
             </thead>
             <tbody id="pc-price-tier-body">
                 <?php
                 if ( empty( $tiers ) ) {
-                    $tiers = array( array( 'qty' => '', 'price' => '', 'unit' => 'kg' ) );
+                    $tiers = array( array( 'qty' => '', 'unit' => 'kg', 'price_per_kg' => '', 'pack_price' => '' ) );
                 }
                 foreach ( $tiers as $i => $tier ) :
+                    $v_perkg = ! empty( $tier['price_per_kg'] ) ? $tier['price_per_kg'] : '';
+                    $v_pack  = ! empty( $tier['pack_price'] ) ? $tier['pack_price'] : '';
                     ?>
                     <tr>
                         <td class="pc-tier-drag" title="<?php esc_attr_e( 'Drag to reorder', 'product-costings' ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>
@@ -101,13 +104,17 @@ class PC_Trade_Name_Fields {
                             </select>
                         </td>
                         <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][qty]" value="<?php echo esc_attr( $tier['qty'] ); ?>" class="widefat pc-tier-qty" placeholder="1"></td>
-                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price]" value="<?php echo esc_attr( $tier['price'] ); ?>" class="widefat pc-tier-price" placeholder="50.00"></td>
-                        <td class="pc-tier-perkg">&mdash;</td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price_per_kg]" value="<?php echo esc_attr( $v_perkg ); ?>" class="widefat pc-tier-perkg-input" placeholder="—"></td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][pack_price]" value="<?php echo esc_attr( $v_pack ); ?>" class="widefat pc-tier-pack-input" placeholder="—"></td>
+                        <td class="pc-tier-effkg">&mdash;</td>
                         <td><button type="button" class="button pc-tier-remove">&times;</button></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
+        <p id="pc-tier-both-warning" style="display:none;color:#d63638;font-weight:600;">
+            <?php esc_html_e( '⚠ A row has both a Price / kg and a Pack price. Enter only one per row.', 'product-costings' ); ?>
+        </p>
         <p><button type="button" class="button" id="pc-tier-add"><?php esc_html_e( '+ Add Price Break', 'product-costings' ); ?></button></p>
 
         <script>
@@ -122,8 +129,9 @@ class PC_Trade_Name_Fields {
                         '<option value="L"><?php echo esc_js( __( 'L', 'product-costings' ) ); ?></option>' +
                     '</select></td>' +
                     '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][qty]" class="widefat pc-tier-qty"></td>' +
-                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price]" class="widefat pc-tier-price"></td>' +
-                    '<td class="pc-tier-perkg">&mdash;</td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price_per_kg]" class="widefat pc-tier-perkg-input" placeholder="—"></td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][pack_price]" class="widefat pc-tier-pack-input" placeholder="—"></td>' +
+                    '<td class="pc-tier-effkg">&mdash;</td>' +
                     '<td><button type="button" class="button pc-tier-remove">&times;</button></td>' +
                     '</tr>';
             }
@@ -132,28 +140,42 @@ class PC_Trade_Name_Fields {
                 var $sg   = $('#pc-specific-gravity');
                 var sg    = parseFloat($sg.val()) || 0;
                 var anyL  = false;
+                var anyBoth = false;
 
                 $('#pc-price-tier-body tr').each(function () {
-                    var unit  = $(this).find('.pc-tier-unit').val();
-                    var size  = parseFloat($(this).find('.pc-tier-qty').val()) || 0;   // Pack size.
-                    var price = parseFloat($(this).find('.pc-tier-price').val()) || 0;  // Total pack price.
-                    var $cell = $(this).find('.pc-tier-perkg');
+                    var unit   = $(this).find('.pc-tier-unit').val();
+                    var qty    = parseFloat($(this).find('.pc-tier-qty').val()) || 0;
+                    var perkg  = parseFloat($(this).find('.pc-tier-perkg-input').val()) || 0;
+                    var pack   = parseFloat($(this).find('.pc-tier-pack-input').val()) || 0;
+                    var $cell  = $(this).find('.pc-tier-effkg');
                     if (unit === 'L') { anyL = true; }
 
-                    if (price <= 0 || size <= 0) { $cell.text('—'); return; }
-
-                    // Pack size in kg (litre packs use specific gravity).
-                    var packKg = size;
-                    if (unit === 'L') {
-                        if (sg > 0) {
-                            packKg = size * sg;
-                        } else {
-                            $cell.html('<em>set SG</em>');
-                            return;
-                        }
+                    // Warn if both price types are filled on one row.
+                    if (perkg > 0 && pack > 0) {
+                        anyBoth = true;
+                        $cell.html('<span style="color:#d63638;font-weight:600;">use one</span>');
+                        return;
                     }
-                    $cell.text(currency + (price / packKg).toFixed(2) + '/kg');
+
+                    if (perkg > 0) {
+                        $cell.text(currency + perkg.toFixed(2) + '/kg');
+                        return;
+                    }
+
+                    if (pack > 0 && qty > 0) {
+                        var qKg = qty;
+                        if (unit === 'L') {
+                            if (sg > 0) { qKg = qty * sg; }
+                            else { $cell.html('<em>set SG</em>'); return; }
+                        }
+                        $cell.text(currency + (pack / qKg).toFixed(2) + '/kg');
+                        return;
+                    }
+
+                    $cell.text('—');
                 });
+
+                $('#pc-tier-both-warning').toggle(anyBoth);
 
                 // Specific Gravity field only active when a litre break exists.
                 if (anyL) {
@@ -173,7 +195,7 @@ class PC_Trade_Name_Fields {
                 $(this).closest('tr').remove();
                 refresh();
             });
-            $('#pc-price-tier-table').on('input change', '.pc-tier-unit, .pc-tier-price', refresh);
+            $('#pc-price-tier-table').on('input change', '.pc-tier-unit, .pc-tier-qty, .pc-tier-perkg-input, .pc-tier-pack-input', refresh);
             $('#pc-specific-gravity').on('input change', refresh);
 
             // Drag to reorder price breaks (display only — costing sorts by pack size).
@@ -378,16 +400,28 @@ class PC_Trade_Name_Fields {
             }
         }
 
-        // Bulk pricing tiers.
+        // Bulk pricing tiers. Each row is either a per-kg quantity break or a
+        // pack price. If both are entered, the per-kg value takes precedence.
         $raw_tiers   = isset( $_POST['pc_price_tiers'] ) && is_array( $_POST['pc_price_tiers'] ) ? wp_unslash( $_POST['pc_price_tiers'] ) : array();
         $clean_tiers = array();
         foreach ( $raw_tiers as $tier ) {
             $qty   = floatval( $tier['qty'] ?? 0 );
-            $price = floatval( $tier['price'] ?? 0 );
             $unit  = ( isset( $tier['unit'] ) && 'L' === $tier['unit'] ) ? 'L' : 'kg';
-            if ( $qty > 0 && $price > 0 ) {
-                $clean_tiers[] = array( 'qty' => $qty, 'price' => $price, 'unit' => $unit );
+            $perkg = floatval( $tier['price_per_kg'] ?? 0 );
+            $pack  = floatval( $tier['pack_price'] ?? 0 );
+
+            if ( $qty <= 0 || ( $perkg <= 0 && $pack <= 0 ) ) {
+                continue;
             }
+            if ( $perkg > 0 ) {
+                $pack = 0; // Per-kg wins if both were entered.
+            }
+            $clean_tiers[] = array(
+                'qty'          => $qty,
+                'unit'         => $unit,
+                'price_per_kg' => $perkg,
+                'pack_price'   => $pack,
+            );
         }
         if ( empty( $clean_tiers ) ) {
             delete_post_meta( $post_id, '_pc_price_tiers' );

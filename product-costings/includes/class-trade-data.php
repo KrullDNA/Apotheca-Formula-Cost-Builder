@@ -216,73 +216,109 @@ class PC_Trade_Data {
         $clean = array();
         foreach ( $rows as $row ) {
             $qty   = isset( $row['qty'] ) ? floatval( $row['qty'] ) : 0;
-            $price = isset( $row['price'] ) ? floatval( $row['price'] ) : 0;
             $unit  = ( isset( $row['unit'] ) && 'L' === $row['unit'] ) ? 'L' : 'kg';
-            if ( $qty > 0 && $price > 0 ) {
-                $clean[] = array( 'qty' => $qty, 'price' => $price, 'unit' => $unit );
+            $perkg = ( isset( $row['price_per_kg'] ) && '' !== $row['price_per_kg'] ) ? floatval( $row['price_per_kg'] ) : 0;
+            $pack  = ( isset( $row['pack_price'] ) && '' !== $row['pack_price'] ) ? floatval( $row['pack_price'] ) : 0;
+
+            // Backward compatibility: the old single 'price' field meant a total pack price.
+            if ( $perkg <= 0 && $pack <= 0 && isset( $row['price'] ) ) {
+                $pack = floatval( $row['price'] );
+            }
+
+            if ( $qty > 0 && ( $perkg > 0 || $pack > 0 ) ) {
+                $clean[] = array(
+                    'qty'          => $qty,
+                    'unit'         => $unit,
+                    'price_per_kg' => $perkg,
+                    'pack_price'   => $pack,
+                );
             }
         }
         return $clean;
     }
 
     /**
-     * Bulk pricing tiers resolved for costing.
+     * Bulk pricing tiers resolved for costing, split by pricing style.
      *
-     * Each stored tier is a pack: a pack size (Kg or L) and the TOTAL price of
-     * that pack. Litre packs are converted to kg using the material's specific
-     * gravity: qty(kg) = qty(L) × SG (the pack's total price is unchanged).
-     *
-     * Each returned tier: array( 'qty' => float (kg pack size), 'cost' => float
-     * (total pack price), 'price' => float (derived per-kg = cost ÷ qty) ).
-     * Sorted ascending by quantity. Empty when none are defined.
+     * A row is either a per-kg quantity break (a price per kg that applies from
+     * a minimum quantity) or a pack (a pack size and its total price, bought in
+     * whole multiples). Litre quantities are converted to kg using the
+     * material's specific gravity.
      *
      * @param int $post_id Trade name post ID.
-     * @return array[]
+     * @return array{
+     *   perkg: array<int,array{threshold:float,rate:float}>,
+     *   packs: array<int,array{qty:float,cost:float}>
+     * }
      */
     public static function get_price_tiers( $post_id ) {
-        $raw = self::get_price_tiers_raw( $post_id );
-        if ( empty( $raw ) ) {
-            return array();
+        $raw   = self::get_price_tiers_raw( $post_id );
+        $perkg = array();
+        $packs = array();
+
+        if ( ! empty( $raw ) ) {
+            $sg = self::get_specific_gravity( $post_id );
+            foreach ( $raw as $tier ) {
+                $qty_kg = ( 'L' === $tier['unit'] && $sg > 0 ) ? $tier['qty'] * $sg : $tier['qty'];
+                if ( $qty_kg <= 0 ) {
+                    continue;
+                }
+                if ( $tier['price_per_kg'] > 0 ) {
+                    // Quantity break: qty is the minimum quantity for this per-kg rate.
+                    $perkg[] = array( 'threshold' => $qty_kg, 'rate' => $tier['price_per_kg'] );
+                } elseif ( $tier['pack_price'] > 0 ) {
+                    // Pack: qty is the pack size, price is the total for the pack.
+                    $packs[] = array( 'qty' => $qty_kg, 'cost' => $tier['pack_price'] );
+                }
+            }
+
+            usort( $perkg, function ( $a, $b ) {
+                return ( $a['threshold'] == $b['threshold'] ) ? 0 : ( ( $a['threshold'] < $b['threshold'] ) ? -1 : 1 );
+            } );
+            usort( $packs, function ( $a, $b ) {
+                return ( $a['qty'] == $b['qty'] ) ? 0 : ( ( $a['qty'] < $b['qty'] ) ? -1 : 1 );
+            } );
         }
 
-        $sg    = self::get_specific_gravity( $post_id );
-        $clean = array();
-        foreach ( $raw as $tier ) {
-            $pack_cost = $tier['price']; // Stored value is the total pack price.
-            if ( 'L' === $tier['unit'] && $sg > 0 ) {
-                $qty_kg = $tier['qty'] * $sg;
-            } else {
-                $qty_kg = $tier['qty'];
+        return array( 'perkg' => $perkg, 'packs' => $packs );
+    }
+
+    /**
+     * Effective minimum order quantity (kg) from the bulk pricing table — the
+     * smallest quantity across all rows (per-kg break thresholds and pack
+     * sizes). Returns null when the material has no bulk pricing.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return float|null
+     */
+    public static function get_effective_moq( $post_id ) {
+        $tiers = self::get_price_tiers( $post_id );
+        $min   = null;
+
+        foreach ( $tiers['perkg'] as $r ) {
+            if ( null === $min || $r['threshold'] < $min ) {
+                $min = $r['threshold'];
             }
-            if ( $qty_kg <= 0 ) {
-                continue;
+        }
+        foreach ( $tiers['packs'] as $p ) {
+            if ( null === $min || $p['qty'] < $min ) {
+                $min = $p['qty'];
             }
-            $clean[] = array(
-                'qty'   => $qty_kg,
-                'cost'  => $pack_cost,
-                'price' => $pack_cost / $qty_kg, // Per-kg, for display.
-            );
         }
 
-        usort( $clean, function ( $a, $b ) {
-            if ( $a['qty'] == $b['qty'] ) {
-                return 0;
-            }
-            return ( $a['qty'] < $b['qty'] ) ? -1 : 1;
-        } );
-
-        return $clean;
+        return $min;
     }
 
     /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
-     * Each bulk pricing tier is a pack size bought in whole multiples at its
-     * per-kg price (the tiers replace MOQ). Packs of different sizes may be
-     * combined, and the cheapest combination that covers the need is chosen —
-     * e.g. 2.2 kg → 3 × 1 kg = $150, 6 kg → 1 × 5 kg + 1 × 1 kg = $250, and a
-     * single large pack is used whenever it is cheapest. Without tiers it is
-     * simply needed × base price.
+     * Evaluates two pricing styles and picks the cheaper:
+     *  - Per-kg quantity breaks: buy the exact kg needed at the applicable rate,
+     *    or buy up to a higher break's minimum when its lower rate is cheaper.
+     *  - Packs: buy whole multiples of pack sizes, combining sizes for the
+     *    cheapest covering combination.
+     * When two options cost the same, the greater quantity wins (free stock).
+     * Without any tiers it is simply needed × base price.
      *
      * @param int   $trade_id       Trade name post ID (0 when none selected).
      * @param float $kg_needed       Kilograms required for the batch.
@@ -291,9 +327,11 @@ class PC_Trade_Data {
      */
     public static function cheapest_purchase( $trade_id, $kg_needed, $fallback_price ) {
         $kg_needed = max( 0, floatval( $kg_needed ) );
-        $tiers     = $trade_id ? self::get_price_tiers( $trade_id ) : array();
+        $tiers     = $trade_id ? self::get_price_tiers( $trade_id ) : array( 'perkg' => array(), 'packs' => array() );
+        $perkg     = $tiers['perkg'];
+        $packs     = $tiers['packs'];
 
-        if ( empty( $tiers ) ) {
+        if ( empty( $perkg ) && empty( $packs ) ) {
             return array(
                 'qty'   => $kg_needed,
                 'price' => $fallback_price,
@@ -305,19 +343,63 @@ class PC_Trade_Data {
             return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
         }
 
-        // Build integer-gram packs (pack size + whole-pack total price).
+        $best = null;
+
+        // Scheme A: per-kg quantity breaks (buy exact kg, or up to a cheaper break).
+        foreach ( $perkg as $r ) {
+            $q = max( $kg_needed, $r['threshold'] );
+            $best = self::pick_cheaper( $best, array( 'qty' => $q, 'cost' => $q * $r['rate'] ) );
+        }
+
+        // Scheme B: cheapest combination of packs (whole multiples).
+        if ( ! empty( $packs ) ) {
+            $best = self::pick_cheaper( $best, self::cheapest_pack_combo( $packs, $kg_needed ) );
+        }
+
+        if ( null === $best ) {
+            return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
+        }
+
+        $best['price'] = 0;
+        return $best;
+    }
+
+    /**
+     * Return whichever purchase option is cheaper; on a cost tie prefer the
+     * greater quantity (free extra stock). Either argument may be null.
+     */
+    private static function pick_cheaper( $a, $b ) {
+        if ( null === $a ) {
+            return $b;
+        }
+        if ( null === $b ) {
+            return $a;
+        }
+        if ( $b['cost'] < $a['cost'] - 1e-9 ) {
+            return $b;
+        }
+        if ( abs( $b['cost'] - $a['cost'] ) <= 1e-9 && $b['qty'] > $a['qty'] ) {
+            return $b;
+        }
+        return $a;
+    }
+
+    /**
+     * Cheapest combination of whole packs covering at least $kg_needed.
+     *
+     * @param array $packs Array of array( 'qty' => kg pack size, 'cost' => total ).
+     * @return array{qty:float,cost:float}|null
+     */
+    private static function cheapest_pack_combo( $packs_in, $kg_needed ) {
         $packs = array();
-        foreach ( $tiers as $tier ) {
-            if ( $tier['qty'] <= 0 ) {
-                continue;
-            }
+        foreach ( $packs_in as $tier ) {
             $grams = (int) round( $tier['qty'] * 1000 );
             if ( $grams > 0 ) {
                 $packs[] = array( 'g' => $grams, 'cost' => $tier['cost'] );
             }
         }
         if ( empty( $packs ) ) {
-            return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
+            return null;
         }
 
         $need_g = (int) ceil( $kg_needed * 1000 );
@@ -342,17 +424,13 @@ class PC_Trade_Data {
         }
         $target = (int) ceil( $need_g / $unit );
 
-        // Guard against pathological sizes.
         if ( $target > 300000 ) {
-            return array( 'qty' => $single['qty'], 'price' => 0, 'cost' => $single['cost'] );
+            return $single;
         }
 
-        // DP: minimum cost to cover at least w units (overfill allowed).
-        // Primary objective cost; when two options cost the same, prefer the
-        // GREATER quantity — the extra material is free usable stock for
-        // another product, so more-for-the-same-money wins the tie.
+        // DP: minimum cost to cover at least w units; cost tie → greater quantity.
         $dp_cost = array_fill( 0, $target + 1, INF );
-        $dp_qty  = array_fill( 0, $target + 1, -1 ); // Grams purchased.
+        $dp_qty  = array_fill( 0, $target + 1, -1 );
         $dp_cost[0] = 0.0;
         $dp_qty[0]  = 0;
         for ( $w = 1; $w <= $target; $w++ ) {
@@ -372,11 +450,7 @@ class PC_Trade_Data {
             }
         }
 
-        return array(
-            'qty'   => $dp_qty[ $target ] / 1000,
-            'price' => 0,
-            'cost'  => $dp_cost[ $target ],
-        );
+        return array( 'qty' => $dp_qty[ $target ] / 1000, 'cost' => $dp_cost[ $target ] );
     }
 
     /**

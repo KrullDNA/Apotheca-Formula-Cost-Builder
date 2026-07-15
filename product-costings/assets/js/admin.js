@@ -657,44 +657,68 @@
          * ────────────────────────────── */
         readTiers: function ($row) {
             var raw = $row.attr('data-price-tiers');
-            if (!raw) return [];
+            if (!raw) return { perkg: [], packs: [] };
             try {
-                var tiers = JSON.parse(raw);
-                return Array.isArray(tiers) ? tiers : [];
+                var t = JSON.parse(raw);
+                if (t && (t.perkg || t.packs)) {
+                    return { perkg: t.perkg || [], packs: t.packs || [] };
+                }
+                return { perkg: [], packs: [] };
             } catch (e) {
-                return [];
+                return { perkg: [], packs: [] };
             }
         },
 
+        pickCheaper: function (a, b) {
+            if (!a) return b;
+            if (!b) return a;
+            if (b.cost < a.cost - 1e-9) return b;
+            if (Math.abs(b.cost - a.cost) <= 1e-9 && b.qty > a.qty) return b;
+            return a;
+        },
+
         // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
-        // Each tier is a pack size bought in whole multiples at its per-kg
-        // price; packs may be combined and the cheapest covering combination is
-        // chosen (ties prefer the greater quantity). Without tiers it is
-        // needed × fallback price. Mirrors PC_Trade_Data::cheapest_purchase().
+        // Evaluates per-kg quantity breaks and pack combinations and takes the
+        // cheaper (ties prefer greater quantity). Mirrors
+        // PC_Trade_Data::cheapest_purchase().
         purchaseDetail: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
             var fb = parseFloat(fallback) || 0;
-            if (!tiers || !tiers.length) {
+            var perkg = (tiers && tiers.perkg) ? tiers.perkg : [];
+            var packs = (tiers && tiers.packs) ? tiers.packs : [];
+
+            if (!perkg.length && !packs.length) {
                 return { qty: needed, cost: needed * fb };
             }
             if (needed <= 0) { return { qty: 0, cost: 0 }; }
 
-            var packs = [];
-            tiers.forEach(function (t) {
-                var grams = Math.round((parseFloat(t.qty) || 0) * 1000);
-                // t.cost is the total pack price (get_price_tiers); fall back to
-                // qty × per-kg price for older shapes.
-                var packCost = (t.cost != null) ? (parseFloat(t.cost) || 0)
-                                                 : (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0);
-                if (grams > 0) {
-                    packs.push({ g: grams, cost: packCost });
-                }
+            var self = this;
+            var best = null;
+
+            // Scheme A: per-kg quantity breaks.
+            perkg.forEach(function (r) {
+                var q = Math.max(needed, parseFloat(r.threshold) || 0);
+                best = self.pickCheaper(best, { qty: q, cost: q * (parseFloat(r.rate) || 0) });
             });
-            if (!packs.length) { return { qty: needed, cost: needed * fb }; }
+
+            // Scheme B: cheapest pack combination.
+            if (packs.length) {
+                best = self.pickCheaper(best, self.cheapestPackCombo(packs, needed));
+            }
+
+            return best || { qty: needed, cost: needed * fb };
+        },
+
+        cheapestPackCombo: function (packsIn, needed) {
+            var packs = [];
+            packsIn.forEach(function (t) {
+                var g = Math.round((parseFloat(t.qty) || 0) * 1000);
+                if (g > 0) { packs.push({ g: g, cost: parseFloat(t.cost) || 0 }); }
+            });
+            if (!packs.length) { return null; }
 
             var needG = Math.ceil(needed * 1000);
 
-            // Cheapest single pack size (safety + fallback for huge needs).
             var single = null;
             packs.forEach(function (p) {
                 var cnt = Math.ceil(needG / p.g);
@@ -702,7 +726,6 @@
                 if (single === null || c < single.cost) { single = { cost: c, qty: cnt * p.g }; }
             });
 
-            // GCD reduction.
             function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a; }
             var unit = needG;
             packs.forEach(function (p) { unit = gcd(unit, p.g); });
@@ -710,8 +733,6 @@
             var target = Math.ceil(needG / unit);
             if (target > 300000) { return { qty: single.qty / 1000, cost: single.cost }; }
 
-            // Min cost to cover ≥ w units; on a cost tie prefer the GREATER
-            // quantity (free extra stock beats buying less for the same money).
             var dpCost = new Array(target + 1).fill(Infinity);
             var dpQty  = new Array(target + 1).fill(-1);
             dpCost[0] = 0; dpQty[0] = 0;
