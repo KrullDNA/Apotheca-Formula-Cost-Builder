@@ -89,6 +89,7 @@
 
 .pc-ft .pc-ft-moq {
     text-align: center;
+    white-space: nowrap;
 }
 
 .pc-ft .pc-ft-kgbatch {
@@ -102,7 +103,7 @@
 .pc-ft-col-function { min-width: 160px; }
 .pc-ft-col-ph       { width: 100px; }
 .pc-ft-col-cost     { width: 100px; }
-.pc-ft-col-moq      { width: 80px; }
+.pc-ft-col-moq      { width: 90px; white-space: nowrap; }
 .pc-ft-col-kgbatch  { width: 100px; }
 
 /* ── Empty state ── */
