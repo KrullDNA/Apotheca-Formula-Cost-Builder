@@ -401,13 +401,15 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
 
                         $price_num = is_numeric( $price ) ? floatval( $price ) : 0;
 
-                        // Format MOQ with kg suffix.
+                        // Format MOQ with kg suffix — show the actual value
+                        // (up to 6 dp), stripping trailing zeros rather than
+                        // rounding (e.g. 0.017 stays 0.017, not 0.02).
                         $moq_display = '';
                         if ( '' !== $moq && is_numeric( $moq ) ) {
                             $moq_num     = floatval( $moq );
                             $moq_display = ( floor( $moq_num ) == $moq_num )
                                 ? number_format( $moq_num, 0 ) . ' kg'
-                                : rtrim( rtrim( number_format( $moq_num, 2 ), '0' ), '.' ) . ' kg';
+                                : rtrim( rtrim( number_format( $moq_num, 6 ), '0' ), '.' ) . ' kg';
                         } elseif ( '' !== $moq ) {
                             // Already contains text like "1 kg".
                             $moq_display = $moq;

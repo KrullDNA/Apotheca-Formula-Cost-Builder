@@ -33,15 +33,12 @@ product-costings/                  Plugin source
 
 See **USER-GUIDE.md** for the full feature documentation.
 
-### Temporary migration helper
+### Importing existing pricing
 
-`pc-bulk-pricing-migrator/` is a standalone, one-time plugin. Install it (upload
-`pc-bulk-pricing-migrator-1.0.0.zip`), open **Tools → Bulk Pricing Migrator**, review
-the preview, and click **Apply** to create the first Bulk Pricing pack on each Trade
-Name from its existing `tn_price_per_kg` and `tn_moq` fields (MOQ becomes the pack
-size, or 1 kg if blank). Trade Names that already have bulk pricing are left untouched,
-so it is safe to re-run. Delete the plugin once done — the pricing it writes is stored
-on the Trade Names and read by the main plugin.
+To seed bulk pricing from your existing per-kg / MOQ fields, use the **Import initial
+pricing** button on **Products → Costings Dashboard**. It creates a first per-kg
+quantity break on every Trade Name that has a Price/kg but no bulk pricing yet (from
+its `tn_price_per_kg` and `tn_moq` fields), skipping any that already have bulk pricing.
 
 ## Requirements
 
@@ -59,6 +56,10 @@ zip -r Apotheca-product-costings-<version>.zip product-costings
 Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
+
+### 1.10.3
+- Front-end MOQ column shows the actual value instead of rounding to 2 dp (e.g. 0.017
+  kg now displays as "0.017 kg", not "0.02 kg"); trailing zeros are stripped.
 
 ### 1.10.2
 - Front-end Formula Ingredients Table: MOQ column widened slightly and set to not wrap,
