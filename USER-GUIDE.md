@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.9.2)
+# Product Costings — User Guide (v1.9.3)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -168,19 +168,21 @@ warns live whenever this material is used outside the range.
 ### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
 
 Optional supplier pack sizes for accurate scale-up costing. In the **Bulk Pricing**
-box, add a row per pack with a **Unit** (Kg or L), a **Pack size**, and a **Price per
-unit**, e.g.:
+box, add a row per pack with a **Unit** (Kg or L), a **Pack size**, and the **Pack
+price (total)** — the total you pay for that whole pack, exactly as the supplier quotes
+it. The **≈ Price / kg** column shows `total ÷ pack size` so you can see the per-kg
+rate. Example:
 
-| Unit | Pack size | Price per unit |
-|---|---|---|
-| Kg | 1  | 50 |
-| Kg | 5  | 40 |
-| Kg | 20 | 30 |
+| Unit | Pack size | Pack price (total) | ≈ Price / kg |
+|---|---|---|---|
+| Kg | 1  | 50  | 50.00 |
+| Kg | 5  | 200 | 40.00 |
+| Kg | 20 | 600 | 30.00 |
 
 **Pack-based cheapest purchasing *(1.8.0)*.** Each pack is bought in **whole multiples**
-at its per-unit price, packs of **different sizes may be combined**, and the plugin
-picks the **cheapest combination** that covers the kg needed. The pack sizes **replace
-MOQ**. Worked examples with the table above:
+at its total price, packs of **different sizes may be combined**, and the plugin picks
+the **cheapest combination** that covers the kg needed. The pack sizes **replace MOQ**.
+Worked examples with the table above:
 
 - Need **2.2 kg** → 3 × 1 kg = **$150**.
 - Need **4.2 kg** → 1 × 5 kg = **$200** (cheaper than 5 × 1 kg = $250).
@@ -204,11 +206,11 @@ enforce a minimum purchase for such a material.
 **Litre / volume pricing *(new in 1.6.0)*.** Some suppliers price by the litre. Set a
 row's **Unit** to **L** and fill in the **Specific Gravity (kg/L)** field (density
 relative to water, e.g. 0.95) — it activates as soon as any row uses L. The plugin
-then converts to a per-kg basis automatically: `price/kg = price per L ÷ SG` and
-`quantity(kg) = quantity(L) × SG`. The **≈ Price / kg** column shows the converted
+then converts the pack size to kg automatically: `quantity(kg) = quantity(L) × SG`, so
+`price/kg = pack price ÷ (litres × SG)`. The **≈ Price / kg** column shows the converted
 figure live as you type, so you can see exactly what a litre price works out to per kg.
-(For example, $50/L at SG 0.90 = $55.56/kg, and a 5 L break becomes a 4.5 kg break.)
-Because everything resolves to kg, the rest of the costing is unaffected.
+(For example, a 5 L pack for $250 at SG 0.90 is 4.5 kg, so ≈ $55.56/kg.) Because
+everything resolves to kg, the rest of the costing is unaffected.
 
 Rows can be **dragged to reorder** with the ☰ handle (display only — costing always
 sorts by pack size). To seed the first pack on many Trade Names at once from their

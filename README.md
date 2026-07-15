@@ -60,6 +60,13 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.9.3
+- **Fix: bulk pricing "Price" is the total pack price, not per-kg.** The column is now
+  "Pack price (total)" and the "≈ Price / kg" column correctly shows `total ÷ pack
+  size` (e.g. a 20 kg pack for 3750 → 187.50/kg, previously shown as 3750/kg). Costing
+  uses the total pack price throughout. Import / migrator now store total pack price
+  (per-kg × pack size).
+
 ### 1.9.2
 - **Import initial pricing** button on the Costings Dashboard: seeds the first bulk
   pricing pack on every Trade Name that has a Price/kg but no bulk pricing yet, from its
