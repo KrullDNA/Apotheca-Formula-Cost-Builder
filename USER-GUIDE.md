@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.8.2)
+# Product Costings — User Guide (v1.9.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -242,7 +242,15 @@ Live calculations that update as you edit the formula or the product's cost fiel
 size. It's saved per product. Set it to the same value as your front-end Batch
 Costings widget so back end and front end always agree.
 
-### 4.1 Cost Drivers *(new)*
+### 4.1 Batch Requirements *(new in 1.9.0)*
+
+A live per-ingredient purchasing list under the Cost Summary. For each ingredient it
+shows **Kg needed** (its share of the batch, including Waste %), **Kg to buy** (the
+cheapest bulk-pricing pack combination — with a "+ spare" note showing any free extra
+stock), and the **Line cost**, plus totals. This is your shopping list for the batch:
+what to order from each supplier and what it costs.
+
+### 4.2 Cost Drivers *(new)*
 
 For each ingredient, two bars: **blue = % of formula weight**, **red = % of raw
 material cost**, sorted by cost. A long red bar over a short blue bar is your
@@ -250,7 +258,7 @@ reformulation target — that ingredient costs far more than its share of the fo
 (This panel uses pure formula cost at nominal price, before bulk-pricing purchase
 effects, so it reflects the formula itself rather than your purchasing pattern.)
 
-### 4.2 Batch Size Sweet Spot *(new)*
+### 4.3 Batch Size Sweet Spot *(new)*
 
 Unit cost calculated at 0.25× to 5× your current batch size. Because larger batches
 drop into cheaper **bulk price breaks** (§3.3), unit cost is **not linear** — the

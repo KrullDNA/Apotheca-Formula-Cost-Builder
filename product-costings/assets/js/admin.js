@@ -604,6 +604,7 @@
             $('#pc-batch-cost').text(totalBatchCost > 0 ? currency + totalBatchCost.toFixed(2) : '—');
             $('#pc-cost-unit').text(costPerUnit > 0 ? currency + costPerUnit.toFixed(4) : '—');
 
+            this.renderRequirements(batchSizeWithWaste, currency);
             this.renderCostDrivers(currency);
             this.renderSweetSpot(currency, wastePct);
         },
@@ -649,17 +650,18 @@
             }
         },
 
-        // Cheapest total cost to obtain at least `needed` kg. Each tier is a
-        // pack size bought in whole multiples at its per-kg price; packs may be
-        // combined and the cheapest covering combination is chosen. Without
-        // tiers it is needed × fallback price. Mirrors
-        // PC_Trade_Data::cheapest_purchase() in PHP.
-        lineCost: function (tiers, needed, fallback) {
+        // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
+        // Each tier is a pack size bought in whole multiples at its per-kg
+        // price; packs may be combined and the cheapest covering combination is
+        // chosen (ties prefer the greater quantity). Without tiers it is
+        // needed × fallback price. Mirrors PC_Trade_Data::cheapest_purchase().
+        purchaseDetail: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
+            var fb = parseFloat(fallback) || 0;
             if (!tiers || !tiers.length) {
-                return needed * (parseFloat(fallback) || 0);
+                return { qty: needed, cost: needed * fb };
             }
-            if (needed <= 0) { return 0; }
+            if (needed <= 0) { return { qty: 0, cost: 0 }; }
 
             var packs = [];
             tiers.forEach(function (t) {
@@ -668,15 +670,16 @@
                     packs.push({ g: grams, cost: (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0) });
                 }
             });
-            if (!packs.length) { return needed * (parseFloat(fallback) || 0); }
+            if (!packs.length) { return { qty: needed, cost: needed * fb }; }
 
             var needG = Math.ceil(needed * 1000);
 
             // Cheapest single pack size (safety + fallback for huge needs).
             var single = null;
             packs.forEach(function (p) {
-                var c = Math.ceil(needG / p.g) * p.cost;
-                if (single === null || c < single) { single = c; }
+                var cnt = Math.ceil(needG / p.g);
+                var c = cnt * p.cost;
+                if (single === null || c < single.cost) { single = { cost: c, qty: cnt * p.g }; }
             });
 
             // GCD reduction.
@@ -685,7 +688,7 @@
             packs.forEach(function (p) { unit = gcd(unit, p.g); });
             if (unit < 1) { unit = 1; }
             var target = Math.ceil(needG / unit);
-            if (target > 300000) { return single; }
+            if (target > 300000) { return { qty: single.qty / 1000, cost: single.cost }; }
 
             // Min cost to cover ≥ w units; on a cost tie prefer the GREATER
             // quantity (free extra stock beats buying less for the same money).
@@ -704,7 +707,61 @@
                     }
                 }
             }
-            return dpCost[target];
+            return { qty: dpQty[target] / 1000, cost: dpCost[target] };
+        },
+
+        lineCost: function (tiers, needed, fallback) {
+            return this.purchaseDetail(tiers, needed, fallback).cost;
+        },
+
+        /* ──────────────────────────────
+         * Batch Requirements (per-ingredient purchasing list)
+         * ────────────────────────────── */
+        renderRequirements: function (batchSizeWithWaste, currency) {
+            var $box = $('#pc-batch-requirements');
+            if (!$box.length) { return; }
+
+            var self = this;
+            var rows = this.getRowData().filter(function (r) { return r.ww > 0; });
+
+            if (!rows.length || batchSizeWithWaste <= 0) {
+                $box.html('<em>Set Batch Size and add ingredients to see quantities.</em>');
+                return;
+            }
+
+            var html = '<table class="pc-req-table"><thead><tr>' +
+                '<th>Ingredient</th><th>% w/w</th><th>Kg needed</th><th>Kg to buy</th><th>Line cost</th>' +
+                '</tr></thead><tbody>';
+
+            var totalNeed = 0, totalBuy = 0, totalCost = 0;
+            rows.forEach(function (r) {
+                var need = (r.ww / 100) * batchSizeWithWaste;
+                var d    = self.purchaseDetail(r.tiers, need, r.price);
+                totalNeed += need; totalBuy += d.qty; totalCost += d.cost;
+
+                var extra = d.qty - need;
+                var buyCell = d.qty.toFixed(3) + ' kg';
+                if (extra > 0.0005) {
+                    buyCell += ' <span class="pc-req-extra">(+' + extra.toFixed(3) + ' spare)</span>';
+                }
+
+                html += '<tr>' +
+                    '<td>' + $('<span>').text(r.name).html() + '</td>' +
+                    '<td>' + r.ww + '%</td>' +
+                    '<td>' + need.toFixed(3) + ' kg</td>' +
+                    '<td>' + buyCell + '</td>' +
+                    '<td>' + (d.cost > 0 ? currency + d.cost.toFixed(2) : '—') + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody><tfoot><tr>' +
+                '<th>Total</th><th></th>' +
+                '<th>' + totalNeed.toFixed(3) + ' kg</th>' +
+                '<th>' + totalBuy.toFixed(3) + ' kg</th>' +
+                '<th>' + currency + totalCost.toFixed(2) + '</th>' +
+                '</tr></tfoot></table>';
+
+            $box.html(html);
         },
 
         /* ──────────────────────────────

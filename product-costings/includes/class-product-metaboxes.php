@@ -299,6 +299,10 @@ class PC_Product_Metaboxes {
                 </tr>
             </table>
 
+            <h4><?php esc_html_e( 'Batch Requirements', 'product-costings' ); ?></h4>
+            <p class="description"><?php esc_html_e( 'Per ingredient: kg needed for this batch (including waste %) and the kg to purchase using the cheapest bulk-pricing pack combination, with its line cost.', 'product-costings' ); ?></p>
+            <div id="pc-batch-requirements"><em><?php esc_html_e( 'Set Batch Size and add ingredients to see quantities.', 'product-costings' ); ?></em></div>
+
             <h4><?php esc_html_e( 'Cost Drivers', 'product-costings' ); ?></h4>
             <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (at nominal price, before bulk-pricing purchase effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
             <div id="pc-cost-drivers"><em><?php esc_html_e( 'Add ingredients with prices to see the breakdown.', 'product-costings' ); ?></em></div>

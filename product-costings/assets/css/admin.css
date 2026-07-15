@@ -525,3 +525,31 @@ tr.pc-inci-subrow > td {
 }
 .pc-version-name-status.pc-saved { color: #007017; }
 .pc-version-name-status.pc-error { color: #d63638; }
+
+/* v1.9.0 — Batch Requirements table */
+.pc-req-table {
+    width: 100%;
+    max-width: 760px;
+    border-collapse: collapse;
+    margin: 6px 0 14px;
+}
+.pc-req-table th,
+.pc-req-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: left;
+    font-size: 12px;
+}
+.pc-req-table thead th {
+    background: #f0f0f1;
+    font-weight: 600;
+}
+.pc-req-table tfoot th {
+    background: #f6f7f7;
+    border-top: 2px solid #c3c4c7;
+    border-bottom: none;
+}
+.pc-req-extra {
+    color: #2271b1;
+    font-style: italic;
+}

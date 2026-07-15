@@ -50,6 +50,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.9.0
+- **Batch Requirements** table in the Cost Summary: a live per-ingredient purchasing
+  list showing kg needed, kg to buy (cheapest pack combination, with any spare stock
+  noted), and line cost, with totals.
+
 ### 1.8.2
 - Cost-tie rule reversed: when two pack combinations cost the same, the optimiser now
   buys the **larger** quantity (the extra is free usable stock for another product).
