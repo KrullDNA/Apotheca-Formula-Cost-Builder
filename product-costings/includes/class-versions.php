@@ -54,6 +54,12 @@ class PC_Versions {
             return;
         }
 
+        // On demand only: a version is saved solely when the "Save this as a
+        // new formula version" box is ticked, so quick edits don't pile up.
+        if ( empty( $_POST['pc_save_version'] ) ) {
+            return;
+        }
+
         $rows = get_post_meta( $post_id, '_pc_formula_rows', true );
         if ( ! is_array( $rows ) ) {
             $rows = array();
@@ -65,7 +71,7 @@ class PC_Versions {
         $last     = end( $versions );
 
         if ( $last && $last['rows'] === $rows ) {
-            return; // Formula unchanged — no new version.
+            return; // Identical to the latest version — nothing to add.
         }
 
         $this->append_version( $post_id, $rows, $note );
@@ -112,7 +118,7 @@ class PC_Versions {
         $versions = $this->get_versions( $post->ID );
 
         if ( empty( $versions ) ) {
-            echo '<p>' . esc_html__( 'No versions yet. A version is saved automatically every time the formula changes. Add a note in the Formula Ingredients box before saving to describe the change.', 'product-costings' ) . '</p>';
+            echo '<p>' . esc_html__( 'No versions yet. To save one, tick "Save this as a new formula version" in the Formula Ingredients box (optionally with a note) and update the product. Quick edits without ticking it won\'t create a version.', 'product-costings' ) . '</p>';
             return;
         }
 

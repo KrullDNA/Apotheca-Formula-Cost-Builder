@@ -57,6 +57,17 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.0
+- **Formula versions are now saved on demand**, not automatically on every save. Tick
+  "Save this as a new formula version" (with an optional note) in the Formula
+  Ingredients box to keep a version; quick edits no longer create clutter.
+
+### 1.10.7
+- Stricter %w/w validation: on leaving the field, the value must be a plain number or
+  exactly "q.s." — anything else (including partial-number text like "12abc") is
+  cleared. Server-side, non-numeric input was already coerced, so no bad data was
+  stored.
+
 ### 1.10.6
 - The **% w/w** column accepts `q.s.` (quantum satis) as well as numbers — the only
   non-numeric value allowed; other text is rejected. q.s. rows count as 0 in every
