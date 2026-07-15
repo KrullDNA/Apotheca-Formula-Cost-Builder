@@ -33,6 +33,16 @@ product-costings/                  Plugin source
 
 See **USER-GUIDE.md** for the full feature documentation.
 
+### Temporary migration helper
+
+`pc-bulk-pricing-migrator/` is a standalone, one-time plugin. Install it (upload
+`pc-bulk-pricing-migrator-1.0.0.zip`), open **Tools → Bulk Pricing Migrator**, review
+the preview, and click **Apply** to create the first Bulk Pricing pack on each Trade
+Name from its existing `tn_price_per_kg` and `tn_moq` fields (MOQ becomes the pack
+size, or 1 kg if blank). Trade Names that already have bulk pricing are left untouched,
+so it is safe to re-run. Delete the plugin once done — the pricing it writes is stored
+on the Trade Names and read by the main plugin.
+
 ## Requirements
 
 - WordPress with a `products` CPT and a `trade-names` CPT (created outside this plugin).
@@ -49,6 +59,55 @@ zip -r Apotheca-product-costings-<version>.zip product-costings
 Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
+
+### 1.9.2
+- **Import initial pricing** button on the Costings Dashboard: seeds the first bulk
+  pricing pack on every Trade Name that has a Price/kg but no bulk pricing yet, from its
+  MOQ (pack size, default 1 kg) and Price/kg. Idempotent; makes the separate migrator
+  plugin optional.
+- **Drag-to-reorder** rows in the Bulk Pricing table (display only — costing sorts by
+  pack size regardless).
+
+### 1.9.1
+- Added a live **Kg / batch** column to the Formula Ingredients table showing each
+  ingredient's quantity needed for the current batch (with a footer total), alongside
+  the fuller Batch Requirements table.
+
+### 1.9.0
+- **Batch Requirements** table in the Cost Summary: a live per-ingredient purchasing
+  list showing kg needed, kg to buy (cheapest pack combination, with any spare stock
+  noted), and line cost, with totals.
+
+### 1.8.2
+- Cost-tie rule reversed: when two pack combinations cost the same, the optimiser now
+  buys the **larger** quantity (the extra is free usable stock for another product).
+  Cost still takes priority — a cheaper option always wins.
+
+### 1.8.1
+- Bulk pricing optimiser breaks cost ties by quantity (superseded by 1.8.2, which
+  prefers the larger quantity).
+
+### 1.8.0
+- Bulk pricing now finds the **cheapest combination of pack sizes** (packs may be
+  mixed): 6 kg → 1 × 5 kg + 1 × 1 kg = $250; 25 kg → 1 × 20 kg + 1 × 5 kg = $800; a
+  single large pack is used whenever it's cheapest. Solved with a GCD-reduced DP
+  (min-cost cover) shared between PHP costing and the admin live calc.
+
+### 1.7.1
+- Bulk pricing tiers are now treated as **pack sizes bought in whole multiples**: an
+  ingredient needing 2.2 kg on a 1 kg pack buys 3 × 1 kg = $150 (not 2.2 × price). The
+  cheapest single pack size is chosen per ingredient. "Quantity from" column renamed to
+  **Pack size**.
+
+### 1.7.0
+- **Cheapest-total bulk purchasing**: ingredient costing now picks the cheapest way to
+  buy at least the kg needed, buying up to a cheaper price break when that beats buying
+  less (e.g. 4.2 kg needed → buy 5 kg @ the 5 kg price when that's cheaper). The price
+  tiers are the purchase increments; the **MOQ field no longer affects costing** (a
+  material's smallest tier acts as its minimum purchase). Without tiers, cost is simply
+  kg needed × Price/KG. Applies to the admin Cost Summary, Batch Costings widget,
+  Costings Dashboard, and the Batch Size Sweet Spot (which now shows real tier savings
+  as batches scale).
 
 ### 1.6.0
 - **Bulk pricing now supports litre/volume pricing**: each price break has a Unit

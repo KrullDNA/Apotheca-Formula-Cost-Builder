@@ -586,19 +586,13 @@
                 var $r    = $(this);
                 var ww    = parseFloat($r.find('.pc-field-ww').val()) || 0;
                 var price = parseFloat($r.find('.pc-field-price').val()) || 0;
-                var moq   = parseFloat($r.find('.pc-field-moq').val()) || 0;
 
                 var kgNeeded = batchSizeWithWaste > 0 ? (ww / 100) * batchSizeWithWaste : 0;
                 if (kgNeeded <= 0) {
                     return;
                 }
 
-                var kgToPurchase = moq > 0 ? Math.ceil(kgNeeded / moq) * moq : kgNeeded;
-                var unitPrice    = self.priceForQty(self.readTiers($r), kgToPurchase, price);
-                if (unitPrice <= 0) {
-                    return;
-                }
-                batchIngredientCost += kgToPurchase * unitPrice;
+                batchIngredientCost += self.lineCost(self.readTiers($r), kgNeeded, price);
             });
 
             var totalBatchCost = batchIngredientCost + facilityCosts + labour + miscCosts + (packagingUnitCost * unitsPerBatch);
@@ -610,8 +604,25 @@
             $('#pc-batch-cost').text(totalBatchCost > 0 ? currency + totalBatchCost.toFixed(2) : '—');
             $('#pc-cost-unit').text(costPerUnit > 0 ? currency + costPerUnit.toFixed(4) : '—');
 
+            this.updateRowKgBatch(batchSizeWithWaste);
+            this.renderRequirements(batchSizeWithWaste, currency);
             this.renderCostDrivers(currency);
             this.renderSweetSpot(currency, wastePct);
+        },
+
+        /* ──────────────────────────────
+         * Per-row "Kg / batch" column in the formula table
+         * ────────────────────────────── */
+        updateRowKgBatch: function (batchSizeWithWaste) {
+            var total = 0;
+            this.$body.find('.pc-row').each(function () {
+                var $r   = $(this);
+                var ww   = parseFloat($r.find('.pc-field-ww').val()) || 0;
+                var need = batchSizeWithWaste > 0 ? (ww / 100) * batchSizeWithWaste : 0;
+                total += need;
+                $r.find('.pc-cell-kgbatch').text(need > 0 ? need.toFixed(3) + ' kg' : '—');
+            });
+            $('#pc-total-kgbatch').html(total > 0 ? '<strong>' + total.toFixed(3) + ' kg</strong>' : '');
         },
 
         /* ──────────────────────────────
@@ -655,16 +666,118 @@
             }
         },
 
-        // Price per kg for a purchased quantity, using tiers if present.
-        priceForQty: function (tiers, qty, fallback) {
-            if (!tiers || !tiers.length) return fallback;
-            var price = parseFloat(tiers[0].price) || fallback;
+        // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
+        // Each tier is a pack size bought in whole multiples at its per-kg
+        // price; packs may be combined and the cheapest covering combination is
+        // chosen (ties prefer the greater quantity). Without tiers it is
+        // needed × fallback price. Mirrors PC_Trade_Data::cheapest_purchase().
+        purchaseDetail: function (tiers, needed, fallback) {
+            needed = Math.max(0, needed);
+            var fb = parseFloat(fallback) || 0;
+            if (!tiers || !tiers.length) {
+                return { qty: needed, cost: needed * fb };
+            }
+            if (needed <= 0) { return { qty: 0, cost: 0 }; }
+
+            var packs = [];
             tiers.forEach(function (t) {
-                if (qty >= (parseFloat(t.qty) || 0)) {
-                    price = parseFloat(t.price) || price;
+                var grams = Math.round((parseFloat(t.qty) || 0) * 1000);
+                if (grams > 0) {
+                    packs.push({ g: grams, cost: (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0) });
                 }
             });
-            return price;
+            if (!packs.length) { return { qty: needed, cost: needed * fb }; }
+
+            var needG = Math.ceil(needed * 1000);
+
+            // Cheapest single pack size (safety + fallback for huge needs).
+            var single = null;
+            packs.forEach(function (p) {
+                var cnt = Math.ceil(needG / p.g);
+                var c = cnt * p.cost;
+                if (single === null || c < single.cost) { single = { cost: c, qty: cnt * p.g }; }
+            });
+
+            // GCD reduction.
+            function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a; }
+            var unit = needG;
+            packs.forEach(function (p) { unit = gcd(unit, p.g); });
+            if (unit < 1) { unit = 1; }
+            var target = Math.ceil(needG / unit);
+            if (target > 300000) { return { qty: single.qty / 1000, cost: single.cost }; }
+
+            // Min cost to cover ≥ w units; on a cost tie prefer the GREATER
+            // quantity (free extra stock beats buying less for the same money).
+            var dpCost = new Array(target + 1).fill(Infinity);
+            var dpQty  = new Array(target + 1).fill(-1);
+            dpCost[0] = 0; dpQty[0] = 0;
+            for (var w = 1; w <= target; w++) {
+                for (var i = 0; i < packs.length; i++) {
+                    var u = packs[i].g / unit;
+                    var prev = (w - u > 0) ? w - u : 0;
+                    if (dpCost[prev] === Infinity) { continue; }
+                    var c = packs[i].cost + dpCost[prev];
+                    var q = packs[i].g + dpQty[prev];
+                    if (c < dpCost[w] - 1e-9 || (Math.abs(c - dpCost[w]) <= 1e-9 && q > dpQty[w])) {
+                        dpCost[w] = c; dpQty[w] = q;
+                    }
+                }
+            }
+            return { qty: dpQty[target] / 1000, cost: dpCost[target] };
+        },
+
+        lineCost: function (tiers, needed, fallback) {
+            return this.purchaseDetail(tiers, needed, fallback).cost;
+        },
+
+        /* ──────────────────────────────
+         * Batch Requirements (per-ingredient purchasing list)
+         * ────────────────────────────── */
+        renderRequirements: function (batchSizeWithWaste, currency) {
+            var $box = $('#pc-batch-requirements');
+            if (!$box.length) { return; }
+
+            var self = this;
+            var rows = this.getRowData().filter(function (r) { return r.ww > 0; });
+
+            if (!rows.length || batchSizeWithWaste <= 0) {
+                $box.html('<em>Set Batch Size and add ingredients to see quantities.</em>');
+                return;
+            }
+
+            var html = '<table class="pc-req-table"><thead><tr>' +
+                '<th>Ingredient</th><th>% w/w</th><th>Kg needed</th><th>Kg to buy</th><th>Line cost</th>' +
+                '</tr></thead><tbody>';
+
+            var totalNeed = 0, totalBuy = 0, totalCost = 0;
+            rows.forEach(function (r) {
+                var need = (r.ww / 100) * batchSizeWithWaste;
+                var d    = self.purchaseDetail(r.tiers, need, r.price);
+                totalNeed += need; totalBuy += d.qty; totalCost += d.cost;
+
+                var extra = d.qty - need;
+                var buyCell = d.qty.toFixed(3) + ' kg';
+                if (extra > 0.0005) {
+                    buyCell += ' <span class="pc-req-extra">(+' + extra.toFixed(3) + ' spare)</span>';
+                }
+
+                html += '<tr>' +
+                    '<td>' + $('<span>').text(r.name).html() + '</td>' +
+                    '<td>' + r.ww + '%</td>' +
+                    '<td>' + need.toFixed(3) + ' kg</td>' +
+                    '<td>' + buyCell + '</td>' +
+                    '<td>' + (d.cost > 0 ? currency + d.cost.toFixed(2) : '—') + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</tbody><tfoot><tr>' +
+                '<th>Total</th><th></th>' +
+                '<th>' + totalNeed.toFixed(3) + ' kg</th>' +
+                '<th>' + totalBuy.toFixed(3) + ' kg</th>' +
+                '<th>' + currency + totalCost.toFixed(2) + '</th>' +
+                '</tr></tfoot></table>';
+
+            $box.html(html);
         },
 
         /* ──────────────────────────────
@@ -749,10 +862,7 @@
                 rows.forEach(function (r) {
                     var kgNeeded = (r.ww / 100) * sizeWaste;
                     if (kgNeeded <= 0) return;
-                    var kgBuy = r.moq > 0 ? Math.ceil(kgNeeded / r.moq) * r.moq : kgNeeded;
-                    var unitPrice = self.priceForQty(r.tiers, kgBuy, r.price);
-                    if (unitPrice <= 0) return;
-                    ingCost += kgBuy * unitPrice;
+                    ingCost += self.lineCost(r.tiers, kgNeeded, r.price);
                 });
 
                 var total    = ingCost + labour + facilityCosts + miscCosts + (packagingUnitCost * units);

@@ -78,6 +78,7 @@ class PC_Product_Metaboxes {
                         <th class="pc-col-price"><?php esc_html_e( 'Price/KG', 'product-costings' ); ?></th>
                         <th class="pc-col-moq"><?php esc_html_e( 'MOQ', 'product-costings' ); ?></th>
                         <th class="pc-col-nat-origin"><?php esc_html_e( 'Nat. Origin %', 'product-costings' ); ?></th>
+                        <th class="pc-col-kgbatch"><?php esc_html_e( 'Kg / batch', 'product-costings' ); ?></th>
                         <th class="pc-col-actions">&nbsp;</th>
                     </tr>
                 </thead>
@@ -94,7 +95,9 @@ class PC_Product_Metaboxes {
                     <tr>
                         <td colspan="3" class="pc-total-label"><strong><?php esc_html_e( 'Total % w/w:', 'product-costings' ); ?></strong></td>
                         <td id="pc-total-ww"><strong>0.00</strong></td>
-                        <td colspan="7"></td>
+                        <td colspan="6"></td>
+                        <td id="pc-total-kgbatch"></td>
+                        <td></td>
                     </tr>
                 </tfoot>
             </table>
@@ -165,6 +168,7 @@ class PC_Product_Metaboxes {
                 <td class="pc-col-nat-origin">
                     <input type="text" name="pc_rows[{{data.i}}][natural_origin]" value="" class="pc-field-natural-origin" readonly>
                 </td>
+                <td class="pc-col-kgbatch pc-cell-kgbatch">&mdash;</td>
                 <td class="pc-col-actions">
                     <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                     <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
@@ -250,6 +254,7 @@ class PC_Product_Metaboxes {
             <td class="pc-col-nat-origin">
                 <input type="text" name="pc_rows[<?php echo (int) $i; ?>][natural_origin]" value="<?php echo esc_attr( $nat_orig ); ?>" class="pc-field-natural-origin" readonly>
             </td>
+            <td class="pc-col-kgbatch pc-cell-kgbatch">&mdash;</td>
             <td class="pc-col-actions">
                 <button type="button" class="button pc-inci-toggle" title="<?php esc_attr_e( 'INCI breakdown for packaging', 'product-costings' ); ?>"><?php esc_html_e( 'INCI', 'product-costings' ); ?></button>
                 <button type="button" class="button pc-duplicate-row" title="<?php esc_attr_e( 'Duplicate', 'product-costings' ); ?>">&#x2398;</button>
@@ -270,7 +275,7 @@ class PC_Product_Metaboxes {
         }
         ?>
         <div id="pc-cost-summary" class="pc-cost-summary">
-            <p class="description"><?php esc_html_e( 'Values are calculated automatically from the formula ingredients and the product meta fields above. Ingredient purchasing is rounded up to each ingredient\'s MOQ, matching the front-end Batch Costings widget.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Values are calculated automatically from the formula ingredients and the product meta fields above. Ingredient purchasing uses each Trade Name\'s bulk pricing tiers — buying up to a cheaper price break when that lowers the total — matching the front-end Batch Costings widget.', 'product-costings' ); ?></p>
             <p>
                 <label for="pc-waste-percent"><strong><?php esc_html_e( 'Waste %', 'product-costings' ); ?></strong></label>
                 <input type="number" id="pc-waste-percent" name="pc_waste_percent" value="<?php echo esc_attr( $waste ); ?>" step="0.5" min="0" max="50" style="width:70px;">
@@ -282,7 +287,7 @@ class PC_Product_Metaboxes {
                     <td id="pc-raw-cost-kg">&mdash;</td>
                 </tr>
                 <tr>
-                    <th><?php esc_html_e( 'Ingredient Cost per Batch (MOQ purchase)', 'product-costings' ); ?></th>
+                    <th><?php esc_html_e( 'Ingredient Cost per Batch (bulk pricing)', 'product-costings' ); ?></th>
                     <td id="pc-raw-cost-batch">&mdash;</td>
                 </tr>
                 <tr>
@@ -299,12 +304,16 @@ class PC_Product_Metaboxes {
                 </tr>
             </table>
 
+            <h4><?php esc_html_e( 'Batch Requirements', 'product-costings' ); ?></h4>
+            <p class="description"><?php esc_html_e( 'Per ingredient: kg needed for this batch (including waste %) and the kg to purchase using the cheapest bulk-pricing pack combination, with its line cost.', 'product-costings' ); ?></p>
+            <div id="pc-batch-requirements"><em><?php esc_html_e( 'Set Batch Size and add ingredients to see quantities.', 'product-costings' ); ?></em></div>
+
             <h4><?php esc_html_e( 'Cost Drivers', 'product-costings' ); ?></h4>
-            <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (before MOQ purchasing effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (at nominal price, before bulk-pricing purchase effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
             <div id="pc-cost-drivers"><em><?php esc_html_e( 'Add ingredients with prices to see the breakdown.', 'product-costings' ); ?></em></div>
 
             <h4><?php esc_html_e( 'Batch Size Sweet Spot', 'product-costings' ); ?></h4>
-            <p class="description"><?php esc_html_e( 'Cost per unit at different batch sizes. Because ingredient purchasing rounds up to MOQ multiples, unit cost is not linear — this shows where the cliffs are. Assumes labour, facility and misc costs are fixed per batch.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Cost per unit at different batch sizes. Because larger batches drop into cheaper bulk price breaks, unit cost is not linear — this shows where the savings kick in. Assumes labour, facility and misc costs are fixed per batch.', 'product-costings' ); ?></p>
             <div id="pc-sweet-spot"><em><?php esc_html_e( 'Requires Batch Size and Unit Size to be set.', 'product-costings' ); ?></em></div>
         </div>
         <?php

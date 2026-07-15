@@ -65,7 +65,7 @@ class PC_Trade_Name_Fields {
         $currency = get_option( 'pc_currency_symbol', '$' );
         ?>
         <p class="description">
-            <?php esc_html_e( 'Optional supplier price breaks. For each quantity break choose the Unit (Kg or L), the quantity it starts from, and the price per that unit — e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price is used, so scaling up picks up bulk pricing automatically. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
+            <?php esc_html_e( 'Optional supplier pack sizes. For each pack choose the Unit (Kg or L), the Pack size, and its price per that unit — e.g. a 1 kg pack @ 50, a 5 kg pack @ 40, a 20 kg pack @ 30. Costing buys whole packs to cover each ingredient and picks the cheapest option: needing 2.2 kg buys 3 × 1 kg packs = 150, while needing 4.2 kg buys one 5 kg pack = 200. The pack sizes replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
         </p>
         <p>
             <label>
@@ -77,8 +77,9 @@ class PC_Trade_Name_Fields {
         <table class="widefat striped" id="pc-price-tier-table" style="max-width:620px;">
             <thead>
                 <tr>
+                    <th style="width:24px;">&nbsp;</th>
                     <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Quantity from', 'product-costings' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Pack size', 'product-costings' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Price per unit', 'product-costings' ); ?></th>
                     <th style="width:120px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
                     <th style="width:50px;">&nbsp;</th>
@@ -92,6 +93,7 @@ class PC_Trade_Name_Fields {
                 foreach ( $tiers as $i => $tier ) :
                     ?>
                     <tr>
+                        <td class="pc-tier-drag" title="<?php esc_attr_e( 'Drag to reorder', 'product-costings' ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>
                         <td>
                             <select name="pc_price_tiers[<?php echo (int) $i; ?>][unit]" class="pc-tier-unit">
                                 <option value="kg" <?php selected( $tier['unit'], 'kg' ); ?>><?php esc_html_e( 'Kg', 'product-costings' ); ?></option>
@@ -114,6 +116,7 @@ class PC_Trade_Name_Fields {
 
             function rowMarkup(idx) {
                 return '<tr>' +
+                    '<td class="pc-tier-drag" title="<?php echo esc_js( __( 'Drag to reorder', 'product-costings' ) ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>' +
                     '<td><select name="pc_price_tiers[' + idx + '][unit]" class="pc-tier-unit">' +
                         '<option value="kg"><?php echo esc_js( __( 'Kg', 'product-costings' ) ); ?></option>' +
                         '<option value="L"><?php echo esc_js( __( 'L', 'product-costings' ) ); ?></option>' +
@@ -168,6 +171,11 @@ class PC_Trade_Name_Fields {
             });
             $('#pc-price-tier-table').on('input change', '.pc-tier-unit, .pc-tier-price', refresh);
             $('#pc-specific-gravity').on('input change', refresh);
+
+            // Drag to reorder price breaks (display only — costing sorts by pack size).
+            if ($.fn.sortable) {
+                $('#pc-price-tier-body').sortable({ handle: '.pc-tier-drag', axis: 'y', opacity: 0.7 });
+            }
 
             refresh();
         });

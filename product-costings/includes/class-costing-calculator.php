@@ -55,13 +55,13 @@ class PC_Costing_Calculator {
         $total_packaging_units = $pkg_volume_kg > 0 ? floor( $batch_size_raw / $pkg_volume_kg ) : 0;
 
         // ── Batch Cost ──
-        // Round each ingredient's kg requirement up to the next MOQ multiple,
-        // then price that quantity using the trade name's bulk pricing tiers.
+        // Bulk pricing tiers drive purchasing: for each ingredient, buy the
+        // quantity/price-break combination that gives the cheapest total for
+        // at least the kg required. Without tiers it is needed × base price.
         $batch_cost = 0;
         foreach ( $rows as $row ) {
             $ww       = isset( $row['percent_w_w'] ) ? floatval( $row['percent_w_w'] ) : 0;
             $price    = isset( $row['price_per_kg'] ) ? floatval( $row['price_per_kg'] ) : 0;
-            $moq      = isset( $row['moq'] ) ? floatval( $row['moq'] ) : 0;
             $trade_id = isset( $row['trade_name_id'] ) ? absint( $row['trade_name_id'] ) : 0;
 
             $kg_needed = $batch_size > 0 ? ( $ww / 100 ) * $batch_size : 0;
@@ -70,19 +70,8 @@ class PC_Costing_Calculator {
                 continue;
             }
 
-            $kg_to_purchase = $moq > 0 ? ceil( $kg_needed / $moq ) * $moq : $kg_needed;
-
-            // Bulk pricing: price the purchased quantity against the tier table
-            // (falls back to the snapshot price when no tiers are defined).
-            $unit_price = $trade_id
-                ? PC_Trade_Data::price_for_qty( $trade_id, $kg_to_purchase, $price )
-                : $price;
-
-            if ( $unit_price <= 0 ) {
-                continue;
-            }
-
-            $batch_cost += $kg_to_purchase * $unit_price;
+            $purchase    = PC_Trade_Data::cheapest_purchase( $trade_id, $kg_needed, $price );
+            $batch_cost += $purchase['cost'];
         }
 
         $total_cost_per_kg          = $batch_size > 0 ? $batch_cost / $batch_size : 0;
