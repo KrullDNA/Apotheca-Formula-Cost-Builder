@@ -60,6 +60,15 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.0
+- **Dual bulk-pricing styles per row: Price / kg OR Pack price.** Supports supplier
+  lists quoted per kg at quantity ranges (e.g. 1–4 kg = 1053.08/kg, 5–9 = 956.92/kg) —
+  costing buys the exact kg needed at the applicable rate, buying up to a cheaper break
+  when worthwhile — as well as the existing fixed pack sizes. Fill only one price per
+  row; a warning shows if both are entered. The optimiser evaluates both styles and
+  picks the cheapest overall. Import/migrator now seed a per-kg break from the existing
+  Price/kg + MOQ.
+
 ### 1.9.3
 - **Fix: bulk pricing "Price" is the total pack price, not per-kg.** The column is now
   "Pack price (total)" and the "≈ Price / kg" column correctly shows `total ÷ pack
