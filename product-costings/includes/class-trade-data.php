@@ -341,35 +341,33 @@ class PC_Trade_Data {
         }
 
         // DP: minimum cost to cover at least w units (overfill allowed).
-        $dp     = array_fill( 0, $target + 1, INF );
-        $choice = array_fill( 0, $target + 1, -1 );
-        $dp[0]  = 0.0;
+        // Primary objective cost; tie-break on the least quantity purchased
+        // (least wastage) when two options cost the same.
+        $dp_cost = array_fill( 0, $target + 1, INF );
+        $dp_qty  = array_fill( 0, $target + 1, INF ); // Grams purchased.
+        $dp_cost[0] = 0.0;
+        $dp_qty[0]  = 0;
         for ( $w = 1; $w <= $target; $w++ ) {
-            foreach ( $packs as $idx => $p ) {
+            foreach ( $packs as $p ) {
                 $u    = (int) ( $p['g'] / $unit );
                 $prev = ( $w - $u > 0 ) ? $w - $u : 0;
-                $c    = $p['cost'] + $dp[ $prev ];
-                if ( $c < $dp[ $w ] ) {
-                    $dp[ $w ]     = $c;
-                    $choice[ $w ] = $idx;
+                if ( INF === $dp_cost[ $prev ] ) {
+                    continue;
+                }
+                $c = $p['cost'] + $dp_cost[ $prev ];
+                $q = $p['g'] + $dp_qty[ $prev ];
+                if ( $c < $dp_cost[ $w ] - 1e-9
+                    || ( abs( $c - $dp_cost[ $w ] ) <= 1e-9 && $q < $dp_qty[ $w ] ) ) {
+                    $dp_cost[ $w ] = $c;
+                    $dp_qty[ $w ]  = $q;
                 }
             }
         }
 
-        // Reconstruct purchased quantity.
-        $qty_g = 0;
-        $w     = $target;
-        while ( $w > 0 && isset( $choice[ $w ] ) && $choice[ $w ] >= 0 ) {
-            $p      = $packs[ $choice[ $w ] ];
-            $qty_g += $p['g'];
-            $u      = (int) ( $p['g'] / $unit );
-            $w      = ( $w - $u > 0 ) ? $w - $u : 0;
-        }
-
         return array(
-            'qty'   => $qty_g / 1000,
+            'qty'   => $dp_qty[ $target ] / 1000,
             'price' => 0,
-            'cost'  => $dp[ $target ],
+            'cost'  => $dp_cost[ $target ],
         );
     }
 

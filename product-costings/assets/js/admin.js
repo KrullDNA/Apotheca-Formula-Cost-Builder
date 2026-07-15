@@ -687,17 +687,23 @@
             var target = Math.ceil(needG / unit);
             if (target > 300000) { return single; }
 
-            var dp = new Array(target + 1).fill(Infinity);
-            dp[0] = 0;
+            // Min cost to cover ≥ w units; tie-break on least quantity (waste).
+            var dpCost = new Array(target + 1).fill(Infinity);
+            var dpQty  = new Array(target + 1).fill(Infinity);
+            dpCost[0] = 0; dpQty[0] = 0;
             for (var w = 1; w <= target; w++) {
                 for (var i = 0; i < packs.length; i++) {
                     var u = packs[i].g / unit;
                     var prev = (w - u > 0) ? w - u : 0;
-                    var c = packs[i].cost + dp[prev];
-                    if (c < dp[w]) { dp[w] = c; }
+                    if (dpCost[prev] === Infinity) { continue; }
+                    var c = packs[i].cost + dpCost[prev];
+                    var q = packs[i].g + dpQty[prev];
+                    if (c < dpCost[w] - 1e-9 || (Math.abs(c - dpCost[w]) <= 1e-9 && q < dpQty[w])) {
+                        dpCost[w] = c; dpQty[w] = q;
+                    }
                 }
             }
-            return dp[target];
+            return dpCost[target];
         },
 
         /* ──────────────────────────────

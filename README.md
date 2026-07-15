@@ -50,6 +50,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.8.1
+- Bulk pricing optimiser now breaks cost ties by **least wastage**: when two pack
+  combinations cost the same, the one buying the smaller total quantity is chosen
+  (cost still takes priority over wastage).
+
 ### 1.8.0
 - Bulk pricing now finds the **cheapest combination of pack sizes** (packs may be
   mixed): 6 kg → 1 × 5 kg + 1 × 1 kg = $250; 25 kg → 1 × 20 kg + 1 × 5 kg = $800; a
