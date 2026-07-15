@@ -60,6 +60,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.2
+- Front-end Formula Ingredients Table: MOQ column widened slightly and set to not wrap,
+  so values like "0.09 kg" stay on one line.
+
 ### 1.10.1
 - The front-end Formula Ingredients Table **MOQ column now reflects the bulk pricing
   table** — it shows the smallest quantity across the material's price breaks/packs
