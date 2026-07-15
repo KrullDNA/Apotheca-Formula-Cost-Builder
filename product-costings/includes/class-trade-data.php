@@ -72,7 +72,8 @@ class PC_Trade_Data {
      * for accurate label ordering).
      *
      * @param int $post_id Trade name post ID.
-     * @return array[] Array of array( 'inci' => string, 'percent' => float ).
+     * @return array[] Array of array( 'inci' => string, 'percent_min' => float,
+     *                 'percent_max' => float, 'percent' => float (midpoint) ).
      */
     public static function get_composition( $post_id ) {
         $rows  = get_post_meta( $post_id, '_pc_inci_composition', true );
@@ -84,18 +85,37 @@ class PC_Trade_Data {
                 if ( '' === $inci ) {
                     continue;
                 }
-                $percent = isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100;
+
+                // Range support: percent_min / percent_max, falling back to a
+                // single stored percent for older data.
+                if ( isset( $row['percent_min'] ) || isset( $row['percent_max'] ) ) {
+                    $min = isset( $row['percent_min'] ) && '' !== $row['percent_min'] ? floatval( $row['percent_min'] ) : 0;
+                    $max = isset( $row['percent_max'] ) && '' !== $row['percent_max'] ? floatval( $row['percent_max'] ) : $min;
+                } else {
+                    $single = isset( $row['percent'] ) ? floatval( $row['percent'] ) : 100;
+                    $min    = $single;
+                    $max    = $single;
+                }
+                if ( $max < $min ) {
+                    $tmp = $min;
+                    $min = $max;
+                    $max = $tmp;
+                }
 
                 // A single row may itself hold a blend written with (and)/and/&/comma.
                 $names = self::split_inci_names( $inci );
                 if ( empty( $names ) ) {
                     continue;
                 }
-                $share = $percent / count( $names );
+                $count = count( $names );
                 foreach ( $names as $name ) {
+                    $row_min = $min / $count;
+                    $row_max = $max / $count;
                     $clean[] = array(
-                        'inci'    => $name,
-                        'percent' => $share,
+                        'inci'        => $name,
+                        'percent_min' => $row_min,
+                        'percent_max' => $row_max,
+                        'percent'     => ( $row_min + $row_max ) / 2, // Midpoint (nominal).
                     );
                 }
             }
@@ -121,8 +141,10 @@ class PC_Trade_Data {
             $share = 100 / count( $names );
             foreach ( $names as $name ) {
                 $clean[] = array(
-                    'inci'    => $name,
-                    'percent' => $share,
+                    'inci'        => $name,
+                    'percent_min' => $share,
+                    'percent_max' => $share,
+                    'percent'     => $share,
                 );
             }
             return $clean;

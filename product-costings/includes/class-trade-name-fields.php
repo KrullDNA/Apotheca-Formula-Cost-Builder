@@ -123,26 +123,30 @@ class PC_Trade_Name_Fields {
         ?>
         <h4><?php esc_html_e( 'INCI Composition', 'product-costings' ); ?></h4>
         <p class="description">
-            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration. For a single-substance material add one row at 100%. For blends (e.g. a preservative system or an emulsifier blend) add one row per INCI with its percentage of the raw material. If this Trade Name already has a plain-text INCI field, it is detected automatically and pre-filled below (blends are split evenly — adjust the percentages to the real split and save for accurate label ordering).', 'product-costings' ); ?>
+            <?php esc_html_e( 'The INCI name(s) this raw material contributes to the label declaration, with each one\'s percentage of the raw material. Enter a Min–Max range from the SDS; the midpoint is used for label ordering and each material\'s constituents are automatically normalised to total 100%. For a single-substance material add one row at 100. If this Trade Name already has a plain-text INCI field, it is detected automatically and pre-filled below.', 'product-costings' ); ?>
         </p>
         <table class="widefat striped" id="pc-inci-comp-table" style="max-width:640px;">
             <thead>
                 <tr>
                     <th><?php esc_html_e( 'INCI Name', 'product-costings' ); ?></th>
-                    <th style="width:120px;"><?php esc_html_e( '% of material', 'product-costings' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Min % of material', 'product-costings' ); ?></th>
+                    <th style="width:100px;"><?php esc_html_e( 'Max % of material', 'product-costings' ); ?></th>
                     <th style="width:60px;">&nbsp;</th>
                 </tr>
             </thead>
             <tbody id="pc-inci-comp-body">
                 <?php
                 if ( empty( $composition ) ) {
-                    $composition = array( array( 'inci' => '', 'percent' => 100 ) );
+                    $composition = array( array( 'inci' => '', 'percent_min' => 100, 'percent_max' => 100 ) );
                 }
                 foreach ( $composition as $i => $row ) :
+                    $r_min = isset( $row['percent_min'] ) ? $row['percent_min'] : ( isset( $row['percent'] ) ? $row['percent'] : '' );
+                    $r_max = isset( $row['percent_max'] ) ? $row['percent_max'] : ( isset( $row['percent'] ) ? $row['percent'] : '' );
                     ?>
                     <tr>
                         <td><input type="text" name="pc_inci_rows[<?php echo (int) $i; ?>][inci]" value="<?php echo esc_attr( $row['inci'] ); ?>" class="widefat" placeholder="<?php esc_attr_e( 'e.g. Glycerin', 'product-costings' ); ?>"></td>
-                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent]" value="<?php echo esc_attr( $row['percent'] ); ?>" step="any" min="0" max="100" class="widefat"></td>
+                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent_min]" value="<?php echo esc_attr( $r_min ); ?>" step="any" min="0" max="100" class="widefat"></td>
+                        <td><input type="number" name="pc_inci_rows[<?php echo (int) $i; ?>][percent_max]" value="<?php echo esc_attr( $r_max ); ?>" step="any" min="0" max="100" class="widefat"></td>
                         <td><button type="button" class="button pc-inci-remove">&times;</button></td>
                     </tr>
                 <?php endforeach; ?>
@@ -171,7 +175,8 @@ class PC_Trade_Name_Fields {
                 $('#pc-inci-comp-body').append(
                     '<tr>' +
                     '<td><input type="text" name="pc_inci_rows[' + idx + '][inci]" class="widefat"></td>' +
-                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent]" value="" step="any" min="0" max="100" class="widefat"></td>' +
+                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent_min]" value="" step="any" min="0" max="100" class="widefat"></td>' +
+                    '<td><input type="number" name="pc_inci_rows[' + idx + '][percent_max]" value="" step="any" min="0" max="100" class="widefat"></td>' +
                     '<td><button type="button" class="button pc-inci-remove">&times;</button></td>' +
                     '</tr>'
                 );
@@ -251,7 +256,7 @@ class PC_Trade_Name_Fields {
             return;
         }
 
-        // INCI composition.
+        // INCI composition (Min–Max % of material per INCI).
         $raw   = isset( $_POST['pc_inci_rows'] ) && is_array( $_POST['pc_inci_rows'] ) ? wp_unslash( $_POST['pc_inci_rows'] ) : array();
         $clean = array();
         foreach ( $raw as $row ) {
@@ -259,9 +264,29 @@ class PC_Trade_Name_Fields {
             if ( '' === $inci ) {
                 continue;
             }
+
+            $min = isset( $row['percent_min'] ) && '' !== $row['percent_min'] ? floatval( $row['percent_min'] ) : null;
+            $max = isset( $row['percent_max'] ) && '' !== $row['percent_max'] ? floatval( $row['percent_max'] ) : null;
+
+            if ( null === $min && null === $max ) {
+                continue;
+            }
+            if ( null === $min ) {
+                $min = $max;
+            }
+            if ( null === $max ) {
+                $max = $min;
+            }
+            if ( $max < $min ) {
+                $tmp = $min;
+                $min = $max;
+                $max = $tmp;
+            }
+
             $clean[] = array(
-                'inci'    => $inci,
-                'percent' => floatval( $row['percent'] ?? 100 ),
+                'inci'        => $inci,
+                'percent_min' => $min,
+                'percent_max' => $max,
             );
         }
         update_post_meta( $post_id, '_pc_inci_composition', $clean );
