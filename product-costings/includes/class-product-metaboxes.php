@@ -124,9 +124,16 @@ class PC_Product_Metaboxes {
             </p>
 
             <p style="margin-top:12px;">
+                <label>
+                    <input type="checkbox" id="pc-save-version" name="pc_save_version" value="1">
+                    <strong><?php esc_html_e( 'Save this as a new formula version', 'product-costings' ); ?></strong>
+                </label>
+                <span class="description"><?php esc_html_e( 'Versions are only saved when you tick this — quick edits won\'t create one. See the Formula Versions box below.', 'product-costings' ); ?></span>
+            </p>
+            <p>
                 <label for="pc-version-note"><strong><?php esc_html_e( 'Version note', 'product-costings' ); ?></strong></label>
-                <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:60%;">
-                <span class="description"><?php esc_html_e( 'Saved with the automatic formula version when this formula changes.', 'product-costings' ); ?></span>
+                <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:55%;">
+                <span class="description"><?php esc_html_e( 'Optional label, saved with the version when you tick the box above.', 'product-costings' ); ?></span>
             </p>
         </div>
 
