@@ -586,19 +586,13 @@
                 var $r    = $(this);
                 var ww    = parseFloat($r.find('.pc-field-ww').val()) || 0;
                 var price = parseFloat($r.find('.pc-field-price').val()) || 0;
-                var moq   = parseFloat($r.find('.pc-field-moq').val()) || 0;
 
                 var kgNeeded = batchSizeWithWaste > 0 ? (ww / 100) * batchSizeWithWaste : 0;
                 if (kgNeeded <= 0) {
                     return;
                 }
 
-                var kgToPurchase = moq > 0 ? Math.ceil(kgNeeded / moq) * moq : kgNeeded;
-                var unitPrice    = self.priceForQty(self.readTiers($r), kgToPurchase, price);
-                if (unitPrice <= 0) {
-                    return;
-                }
-                batchIngredientCost += kgToPurchase * unitPrice;
+                batchIngredientCost += self.lineCost(self.readTiers($r), kgNeeded, price);
             });
 
             var totalBatchCost = batchIngredientCost + facilityCosts + labour + miscCosts + (packagingUnitCost * unitsPerBatch);
@@ -655,16 +649,22 @@
             }
         },
 
-        // Price per kg for a purchased quantity, using tiers if present.
-        priceForQty: function (tiers, qty, fallback) {
-            if (!tiers || !tiers.length) return fallback;
-            var price = parseFloat(tiers[0].price) || fallback;
+        // Cheapest total cost to obtain at least `needed` kg, using tiers if
+        // present (buy up to a cheaper price break when that beats buying less).
+        // Without tiers it is simply needed × fallback price. Mirrors
+        // PC_Trade_Data::cheapest_purchase() in PHP.
+        lineCost: function (tiers, needed, fallback) {
+            needed = Math.max(0, needed);
+            if (!tiers || !tiers.length) {
+                return needed * (parseFloat(fallback) || 0);
+            }
+            var best = null;
             tiers.forEach(function (t) {
-                if (qty >= (parseFloat(t.qty) || 0)) {
-                    price = parseFloat(t.price) || price;
-                }
+                var q = Math.max(needed, parseFloat(t.qty) || 0);
+                var c = q * (parseFloat(t.price) || 0);
+                if (best === null || c < best) { best = c; }
             });
-            return price;
+            return best === null ? 0 : best;
         },
 
         /* ──────────────────────────────
@@ -749,10 +749,7 @@
                 rows.forEach(function (r) {
                     var kgNeeded = (r.ww / 100) * sizeWaste;
                     if (kgNeeded <= 0) return;
-                    var kgBuy = r.moq > 0 ? Math.ceil(kgNeeded / r.moq) * r.moq : kgNeeded;
-                    var unitPrice = self.priceForQty(r.tiers, kgBuy, r.price);
-                    if (unitPrice <= 0) return;
-                    ingCost += kgBuy * unitPrice;
+                    ingCost += self.lineCost(r.tiers, kgNeeded, r.price);
                 });
 
                 var total    = ingCost + labour + facilityCosts + miscCosts + (packagingUnitCost * units);

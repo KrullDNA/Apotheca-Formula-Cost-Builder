@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.6.0)
+# Product Costings — User Guide (v1.7.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -176,11 +176,27 @@ box, add a row per price break with a **Unit** (Kg or L), a **Quantity from**, a
 | Kg | 5  | 40 |
 | Kg | 20 | 30 |
 
-When a batch requires (after MOQ rounding) at least a tier's quantity, that tier's
-price is used for the whole purchase. So a batch needing 2.2 kg pays $50/kg, one
-needing 6 kg pays $40/kg, and one needing 25 kg pays $30/kg — and the **Batch Size
-Sweet Spot** panel reflects real bulk pricing as you scale up. Below the smallest tier,
-the smallest tier's price applies.
+**Cheapest-total purchasing *(1.7.0)*.** The tiers now fully drive purchasing — they
+are the increments, and **MOQ is no longer used** when tiers are set. For each
+ingredient the plugin picks the **cheapest total** way to obtain at least the kg
+needed, buying up to a cheaper price break when that beats buying less. Worked examples
+with the table above:
+
+- Need **2.2 kg** → buy 2.2 kg @ $50 = **$110** (rounding up to the 5 kg break would
+  cost $200, so it doesn't).
+- Need **4.2 kg** → buy **5 kg @ $40 = $200** (cheaper than 4.2 kg @ $50 = $210), so it
+  buys the extra 0.8 kg to reach the break.
+- Need **6 kg** → buy 6 kg @ $40 = **$240** (uses the 5 kg price; does not jump to the
+  20 kg break).
+- Need **18 kg** → buy 20 kg @ $30 = **$600** (cheaper than 18 kg @ $40 = $720).
+
+The smallest tier's quantity acts as the minimum purchase (needing 0.5 kg with a 1 kg
+smallest tier buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so
+it now shows exactly where scaling a batch up crosses into a cheaper price break.
+
+Ingredients with **no tiers** are simply `kg needed × Price/KG` (no MOQ rounding — the
+MOQ field no longer affects costing). Add a smallest tier if you need to enforce a
+minimum purchase for such a material.
 
 **Litre / volume pricing *(new in 1.6.0)*.** Some suppliers price by the litre. Set a
 row's **Unit** to **L** and fill in the **Specific Gravity (kg/L)** field (density
@@ -215,7 +231,7 @@ Live calculations that update as you edit the formula or the product's cost fiel
 | Line | Meaning |
 |---|---|
 | **Raw Material Cost per KG** | Σ (%w/w ÷ 100 × price/kg). The pure formula cost — what 1 kg of product costs in materials, ignoring purchasing effects. |
-| **Ingredient Cost per Batch (MOQ purchase)** | What you actually pay: each ingredient's required kg (at batch size + waste %) rounded **up** to its MOQ multiple, × price. |
+| **Ingredient Cost per Batch (bulk pricing)** | What you actually pay: each ingredient's required kg (at batch size + waste %) costed by the **cheapest-total** bulk-pricing rule (§3.3) — buying up to a cheaper price break when that lowers the total. Without tiers, `kg needed × price`. |
 | **Units per Batch** | From `packaging_units_per_batch`, or `floor(batch size × 1000 ÷ unit size)`. |
 | **Total Batch Cost** | Ingredients + labour + facility + misc + packaging. |
 | **Cost per Unit** | Total batch cost ÷ units. |
@@ -229,17 +245,17 @@ Costings widget so back end and front end always agree.
 For each ingredient, two bars: **blue = % of formula weight**, **red = % of raw
 material cost**, sorted by cost. A long red bar over a short blue bar is your
 reformulation target — that ingredient costs far more than its share of the formula.
-(This panel uses pure formula cost, before MOQ purchasing effects, so it reflects the
-formula itself rather than your purchasing pattern.)
+(This panel uses pure formula cost at nominal price, before bulk-pricing purchase
+effects, so it reflects the formula itself rather than your purchasing pattern.)
 
 ### 4.2 Batch Size Sweet Spot *(new)*
 
-Unit cost calculated at 0.25× to 5× your current batch size. Because ingredient
-purchasing rounds up to MOQ multiples, unit cost is **not linear** — small batches
-can carry huge MOQ overhead, and there are "cliffs" where one more MOQ unit of an
-expensive material kicks in. The cheapest row is highlighted with a ★. Assumes
-labour, facility and misc costs are fixed per batch — if yours scale with batch size,
-read the small sizes optimistically.
+Unit cost calculated at 0.25× to 5× your current batch size. Because larger batches
+drop into cheaper **bulk price breaks** (§3.3), unit cost is **not linear** — the
+panel shows exactly where scaling up crosses into a cheaper tier and how much it saves
+per unit. The cheapest row is highlighted with a ★. Assumes labour, facility and misc
+costs are fixed per batch — if yours scale with batch size, read the small sizes
+optimistically.
 
 ---
 
@@ -388,9 +404,11 @@ underscore, or ACF keys), never written.
 
 ### 10.2 The costing model in one paragraph
 
-Batch size is grossed up by Waste %. Each ingredient's required kg is rounded **up**
-to its MOQ multiple and multiplied by price/kg → ingredient batch cost. Add labour,
-facility, misc, and packaging (unit cost × units per batch) → total batch cost.
+Batch size is grossed up by Waste %. Each ingredient's required kg is costed by the
+**cheapest-total bulk-pricing rule** (buy up to a cheaper price break when it lowers
+the total; §3.3), or `kg needed × price/kg` when the material has no tiers → ingredient
+batch cost. Add labour, facility, misc, and packaging (unit cost × units per batch) →
+total batch cost.
 Divide by units per batch → unit cost. Multiply by your `cost_price`, `wholesale`
 and `rrp` multipliers for prices (RRP is rounded up to a whole number).
 

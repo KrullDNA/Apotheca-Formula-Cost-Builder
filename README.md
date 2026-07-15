@@ -50,6 +50,16 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.7.0
+- **Cheapest-total bulk purchasing**: ingredient costing now picks the cheapest way to
+  buy at least the kg needed, buying up to a cheaper price break when that beats buying
+  less (e.g. 4.2 kg needed → buy 5 kg @ the 5 kg price when that's cheaper). The price
+  tiers are the purchase increments; the **MOQ field no longer affects costing** (a
+  material's smallest tier acts as its minimum purchase). Without tiers, cost is simply
+  kg needed × Price/KG. Applies to the admin Cost Summary, Batch Costings widget,
+  Costings Dashboard, and the Batch Size Sweet Spot (which now shows real tier savings
+  as batches scale).
+
 ### 1.6.0
 - **Bulk pricing now supports litre/volume pricing**: each price break has a Unit
   dropdown (Kg or L) and there's a Specific Gravity (kg/L) field that activates when a

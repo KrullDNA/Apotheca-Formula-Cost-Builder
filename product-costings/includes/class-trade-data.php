@@ -268,32 +268,40 @@ class PC_Trade_Data {
     }
 
     /**
-     * Resolve the price per kg for a given purchase quantity using the trade
-     * name's bulk pricing tiers, falling back to a base price when no tier
-     * applies or no tiers are defined.
+     * Cheapest total cost to obtain at least $kg_needed of a material.
      *
-     * The applicable tier is the one with the largest quantity threshold that
-     * is still ≤ the quantity purchased. Below the smallest threshold, the
-     * smallest tier's price is used.
+     * With bulk pricing tiers, the tiers ARE the purchase increments (MOQ is
+     * no longer applied separately). For each price break it evaluates buying
+     * max( needed, break quantity ) at that break's price and returns the
+     * cheapest total — so buying 5 kg at the 5 kg price can beat buying 4.2 kg
+     * at the 1 kg price. Without tiers it is simply needed × base price.
      *
-     * @param int   $post_id        Trade name post ID.
-     * @param float $qty            Quantity being purchased (kg).
-     * @param float $fallback_price Price per kg to use when no tiers exist.
-     * @return float
+     * @param int   $trade_id       Trade name post ID (0 when none selected).
+     * @param float $kg_needed       Kilograms required for the batch.
+     * @param float $fallback_price  Price per kg when no tiers are defined.
+     * @return array{qty:float,price:float,cost:float}
      */
-    public static function price_for_qty( $post_id, $qty, $fallback_price ) {
-        $tiers = self::get_price_tiers( $post_id );
+    public static function cheapest_purchase( $trade_id, $kg_needed, $fallback_price ) {
+        $kg_needed = max( 0, floatval( $kg_needed ) );
+        $tiers     = $trade_id ? self::get_price_tiers( $trade_id ) : array();
+
         if ( empty( $tiers ) ) {
-            return $fallback_price;
+            return array(
+                'qty'   => $kg_needed,
+                'price' => $fallback_price,
+                'cost'  => $kg_needed * $fallback_price,
+            );
         }
 
-        $price = $tiers[0]['price']; // Smallest-quantity price as the base.
+        $best = null;
         foreach ( $tiers as $tier ) {
-            if ( $qty >= $tier['qty'] ) {
-                $price = $tier['price'];
+            $qty  = max( $kg_needed, $tier['qty'] );
+            $cost = $qty * $tier['price'];
+            if ( null === $best || $cost < $best['cost'] ) {
+                $best = array( 'qty' => $qty, 'price' => $tier['price'], 'cost' => $cost );
             }
         }
-        return $price;
+        return $best;
     }
 
     /**

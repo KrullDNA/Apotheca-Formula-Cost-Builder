@@ -270,7 +270,7 @@ class PC_Product_Metaboxes {
         }
         ?>
         <div id="pc-cost-summary" class="pc-cost-summary">
-            <p class="description"><?php esc_html_e( 'Values are calculated automatically from the formula ingredients and the product meta fields above. Ingredient purchasing is rounded up to each ingredient\'s MOQ, matching the front-end Batch Costings widget.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Values are calculated automatically from the formula ingredients and the product meta fields above. Ingredient purchasing uses each Trade Name\'s bulk pricing tiers — buying up to a cheaper price break when that lowers the total — matching the front-end Batch Costings widget.', 'product-costings' ); ?></p>
             <p>
                 <label for="pc-waste-percent"><strong><?php esc_html_e( 'Waste %', 'product-costings' ); ?></strong></label>
                 <input type="number" id="pc-waste-percent" name="pc_waste_percent" value="<?php echo esc_attr( $waste ); ?>" step="0.5" min="0" max="50" style="width:70px;">
@@ -282,7 +282,7 @@ class PC_Product_Metaboxes {
                     <td id="pc-raw-cost-kg">&mdash;</td>
                 </tr>
                 <tr>
-                    <th><?php esc_html_e( 'Ingredient Cost per Batch (MOQ purchase)', 'product-costings' ); ?></th>
+                    <th><?php esc_html_e( 'Ingredient Cost per Batch (bulk pricing)', 'product-costings' ); ?></th>
                     <td id="pc-raw-cost-batch">&mdash;</td>
                 </tr>
                 <tr>
@@ -300,11 +300,11 @@ class PC_Product_Metaboxes {
             </table>
 
             <h4><?php esc_html_e( 'Cost Drivers', 'product-costings' ); ?></h4>
-            <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (before MOQ purchasing effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Each ingredient\'s share of formula weight vs its share of raw material cost (at nominal price, before bulk-pricing purchase effects). Big gaps between the two bars show where reformulation saves the most money.', 'product-costings' ); ?></p>
             <div id="pc-cost-drivers"><em><?php esc_html_e( 'Add ingredients with prices to see the breakdown.', 'product-costings' ); ?></em></div>
 
             <h4><?php esc_html_e( 'Batch Size Sweet Spot', 'product-costings' ); ?></h4>
-            <p class="description"><?php esc_html_e( 'Cost per unit at different batch sizes. Because ingredient purchasing rounds up to MOQ multiples, unit cost is not linear — this shows where the cliffs are. Assumes labour, facility and misc costs are fixed per batch.', 'product-costings' ); ?></p>
+            <p class="description"><?php esc_html_e( 'Cost per unit at different batch sizes. Because larger batches drop into cheaper bulk price breaks, unit cost is not linear — this shows where the savings kick in. Assumes labour, facility and misc costs are fixed per batch.', 'product-costings' ); ?></p>
             <div id="pc-sweet-spot"><em><?php esc_html_e( 'Requires Batch Size and Unit Size to be set.', 'product-costings' ); ?></em></div>
         </div>
         <?php
