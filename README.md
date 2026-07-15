@@ -50,6 +50,13 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.6.0
+- **Bulk pricing now supports litre/volume pricing**: each price break has a Unit
+  dropdown (Kg or L) and there's a Specific Gravity (kg/L) field that activates when a
+  litre break is used. Litre tiers are converted to a per-kg basis automatically
+  (`price/kg = price/L ÷ SG`, `qty(kg) = qty(L) × SG`), with a live "≈ Price/kg"
+  column in the editor. Existing kg tiers are unaffected.
+
 ### 1.5.0
 - **INCI % ranges (Min–Max) from SDS**: each INCI constituent now takes a Min/Max
   percentage of the raw material; the midpoint drives label ordering. Available in
