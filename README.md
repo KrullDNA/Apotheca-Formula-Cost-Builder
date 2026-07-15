@@ -60,6 +60,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.9.2
+- **Import initial pricing** button on the Costings Dashboard: seeds the first bulk
+  pricing pack on every Trade Name that has a Price/kg but no bulk pricing yet, from its
+  MOQ (pack size, default 1 kg) and Price/kg. Idempotent; makes the separate migrator
+  plugin optional.
+- **Drag-to-reorder** rows in the Bulk Pricing table (display only — costing sorts by
+  pack size regardless).
+
 ### 1.9.1
 - Added a live **Kg / batch** column to the Formula Ingredients table showing each
   ingredient's quantity needed for the current batch (with a footer total), alongside

@@ -77,6 +77,7 @@ class PC_Trade_Name_Fields {
         <table class="widefat striped" id="pc-price-tier-table" style="max-width:620px;">
             <thead>
                 <tr>
+                    <th style="width:24px;">&nbsp;</th>
                     <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Pack size', 'product-costings' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Price per unit', 'product-costings' ); ?></th>
@@ -92,6 +93,7 @@ class PC_Trade_Name_Fields {
                 foreach ( $tiers as $i => $tier ) :
                     ?>
                     <tr>
+                        <td class="pc-tier-drag" title="<?php esc_attr_e( 'Drag to reorder', 'product-costings' ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>
                         <td>
                             <select name="pc_price_tiers[<?php echo (int) $i; ?>][unit]" class="pc-tier-unit">
                                 <option value="kg" <?php selected( $tier['unit'], 'kg' ); ?>><?php esc_html_e( 'Kg', 'product-costings' ); ?></option>
@@ -114,6 +116,7 @@ class PC_Trade_Name_Fields {
 
             function rowMarkup(idx) {
                 return '<tr>' +
+                    '<td class="pc-tier-drag" title="<?php echo esc_js( __( 'Drag to reorder', 'product-costings' ) ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>' +
                     '<td><select name="pc_price_tiers[' + idx + '][unit]" class="pc-tier-unit">' +
                         '<option value="kg"><?php echo esc_js( __( 'Kg', 'product-costings' ) ); ?></option>' +
                         '<option value="L"><?php echo esc_js( __( 'L', 'product-costings' ) ); ?></option>' +
@@ -168,6 +171,11 @@ class PC_Trade_Name_Fields {
             });
             $('#pc-price-tier-table').on('input change', '.pc-tier-unit, .pc-tier-price', refresh);
             $('#pc-specific-gravity').on('input change', refresh);
+
+            // Drag to reorder price breaks (display only — costing sorts by pack size).
+            if ($.fn.sortable) {
+                $('#pc-price-tier-body').sortable({ handle: '.pc-tier-drag', axis: 'y', opacity: 0.7 });
+            }
 
             refresh();
         });

@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.9.1)
+# Product Costings — User Guide (v1.9.2)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -209,6 +209,11 @@ then converts to a per-kg basis automatically: `price/kg = price per L ÷ SG` an
 figure live as you type, so you can see exactly what a litre price works out to per kg.
 (For example, $50/L at SG 0.90 = $55.56/kg, and a 5 L break becomes a 4.5 kg break.)
 Because everything resolves to kg, the rest of the costing is unaffected.
+
+Rows can be **dragged to reorder** with the ☰ handle (display only — costing always
+sorts by pack size). To seed the first pack on many Trade Names at once from their
+existing MOQ and Price/kg fields, use **Import initial pricing** on the Costings
+Dashboard (§7).
 
 Leave the table empty to use the single **Price/KG** field for all quantities (the
 default). Tiers, when present, drive every batch-cost figure (admin Cost Summary,

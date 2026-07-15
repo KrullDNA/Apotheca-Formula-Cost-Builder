@@ -24,6 +24,84 @@ class PC_Margin_Dashboard {
     private function __construct() {
         add_action( 'admin_menu', array( $this, 'add_menu' ) );
         add_action( 'admin_init', array( $this, 'handle_target_save' ) );
+        add_action( 'admin_init', array( $this, 'handle_import_pricing' ) );
+    }
+
+    /* ───────────────────────────────────────────────
+     * Import initial bulk pricing from MOQ / Price per kg
+     * ─────────────────────────────────────────────── */
+
+    /**
+     * Trade names that have a price per kg but no bulk pricing yet.
+     */
+    public static function count_pricing_import_candidates() {
+        $ids   = self::trade_name_ids();
+        $count = 0;
+        foreach ( $ids as $id ) {
+            $existing = get_post_meta( $id, '_pc_price_tiers', true );
+            if ( is_array( $existing ) && ! empty( $existing ) ) {
+                continue;
+            }
+            if ( floatval( PC_Trade_Data::get( $id, 'price_per_kg' ) ) > 0 ) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
+    /**
+     * Seed the first bulk pricing pack on each eligible trade name from its
+     * existing MOQ (pack size, default 1 kg) and price per kg. Idempotent:
+     * trade names that already have bulk pricing are skipped.
+     *
+     * @return int Number updated.
+     */
+    public static function import_pricing_from_moq() {
+        $ids     = self::trade_name_ids();
+        $updated = 0;
+        foreach ( $ids as $id ) {
+            $existing = get_post_meta( $id, '_pc_price_tiers', true );
+            if ( is_array( $existing ) && ! empty( $existing ) ) {
+                continue;
+            }
+            $price = floatval( PC_Trade_Data::get( $id, 'price_per_kg' ) );
+            if ( $price <= 0 ) {
+                continue;
+            }
+            $moq  = floatval( PC_Trade_Data::get( $id, 'moq' ) );
+            $pack = $moq > 0 ? $moq : 1;
+
+            update_post_meta( $id, '_pc_price_tiers', array(
+                array( 'qty' => $pack, 'price' => $price, 'unit' => 'kg' ),
+            ) );
+            $updated++;
+        }
+        return $updated;
+    }
+
+    private static function trade_name_ids() {
+        return get_posts( array(
+            'post_type'      => 'trade-names',
+            'post_status'    => 'any',
+            'posts_per_page' => -1,
+            'fields'         => 'ids',
+        ) );
+    }
+
+    public function handle_import_pricing() {
+        if ( ! isset( $_POST['pc_import_pricing_nonce'] ) ) {
+            return;
+        }
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['pc_import_pricing_nonce'] ) ), 'pc_import_pricing' ) ) {
+            return;
+        }
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $updated = self::import_pricing_from_moq();
+        wp_safe_redirect( admin_url( 'edit.php?post_type=products&page=pc-costings-dashboard&imported=' . (int) $updated ) );
+        exit;
     }
 
     public function add_menu() {
@@ -79,6 +157,28 @@ class PC_Margin_Dashboard {
 
             <?php if ( isset( $_GET['updated'] ) ) : ?>
                 <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Target margin updated.', 'product-costings' ); ?></p></div>
+            <?php endif; ?>
+
+            <?php if ( isset( $_GET['imported'] ) ) : ?>
+                <div class="notice notice-success is-dismissible"><p>
+                    <?php echo esc_html( sprintf( __( 'Imported initial bulk pricing for %d Trade Name(s).', 'product-costings' ), absint( $_GET['imported'] ) ) ); ?>
+                </p></div>
+            <?php endif; ?>
+
+            <?php $import_candidates = self::count_pricing_import_candidates(); ?>
+            <?php if ( $import_candidates > 0 ) : ?>
+                <div class="notice notice-info" style="padding:10px 12px;">
+                    <p style="margin:0 0 8px;">
+                        <strong><?php echo esc_html( sprintf( __( '%d Trade Name(s) have a Price/kg but no bulk pricing yet.', 'product-costings' ), $import_candidates ) ); ?></strong>
+                        <?php esc_html_e( 'Import their MOQ and Price/kg as a first bulk-pricing pack (MOQ becomes the pack size, or 1 kg if blank). Trade Names that already have bulk pricing are left untouched.', 'product-costings' ); ?>
+                    </p>
+                    <form method="post" style="margin:0;">
+                        <?php wp_nonce_field( 'pc_import_pricing', 'pc_import_pricing_nonce' ); ?>
+                        <button type="submit" class="button button-secondary">
+                            <?php echo esc_html( sprintf( __( 'Import initial pricing for %d Trade Names', 'product-costings' ), $import_candidates ) ); ?>
+                        </button>
+                    </form>
+                </div>
             <?php endif; ?>
 
             <form method="post" style="margin:12px 0 20px;">
