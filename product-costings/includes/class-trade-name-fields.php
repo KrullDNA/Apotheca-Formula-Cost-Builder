@@ -65,7 +65,7 @@ class PC_Trade_Name_Fields {
         $currency = get_option( 'pc_currency_symbol', '$' );
         ?>
         <p class="description">
-            <?php esc_html_e( 'Optional supplier pack sizes. For each pack choose the Unit (Kg or L), the Pack size, and its price per that unit — e.g. a 1 kg pack @ 50, a 5 kg pack @ 40, a 20 kg pack @ 30. Costing buys whole packs to cover each ingredient and picks the cheapest option: needing 2.2 kg buys 3 × 1 kg packs = 150, while needing 4.2 kg buys one 5 kg pack = 200. The pack sizes replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
+            <?php esc_html_e( 'Optional supplier pack sizes. For each pack choose the Unit (Kg or L), the Pack size, and the TOTAL price you pay for that pack — e.g. a 1 kg pack for 200, a 5 kg pack for 968, a 20 kg pack for 3750. The "≈ Price / kg" column shows the total ÷ pack size so you can see the per-kg rate. Costing buys whole packs to cover each ingredient and picks the cheapest combination. The pack sizes replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
         </p>
         <p>
             <label>
@@ -80,7 +80,7 @@ class PC_Trade_Name_Fields {
                     <th style="width:24px;">&nbsp;</th>
                     <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Pack size', 'product-costings' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Price per unit', 'product-costings' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Pack price (total)', 'product-costings' ); ?></th>
                     <th style="width:120px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
                     <th style="width:50px;">&nbsp;</th>
                 </tr>
@@ -135,20 +135,24 @@ class PC_Trade_Name_Fields {
 
                 $('#pc-price-tier-body tr').each(function () {
                     var unit  = $(this).find('.pc-tier-unit').val();
-                    var price = parseFloat($(this).find('.pc-tier-price').val()) || 0;
+                    var size  = parseFloat($(this).find('.pc-tier-qty').val()) || 0;   // Pack size.
+                    var price = parseFloat($(this).find('.pc-tier-price').val()) || 0;  // Total pack price.
                     var $cell = $(this).find('.pc-tier-perkg');
                     if (unit === 'L') { anyL = true; }
 
-                    if (price <= 0) { $cell.text('—'); return; }
+                    if (price <= 0 || size <= 0) { $cell.text('—'); return; }
+
+                    // Pack size in kg (litre packs use specific gravity).
+                    var packKg = size;
                     if (unit === 'L') {
                         if (sg > 0) {
-                            $cell.text(currency + (price / sg).toFixed(2) + '/kg');
+                            packKg = size * sg;
                         } else {
                             $cell.html('<em>set SG</em>');
+                            return;
                         }
-                    } else {
-                        $cell.text(currency + price.toFixed(2) + '/kg');
                     }
+                    $cell.text(currency + (price / packKg).toFixed(2) + '/kg');
                 });
 
                 // Specific Gravity field only active when a litre break exists.

@@ -682,8 +682,12 @@
             var packs = [];
             tiers.forEach(function (t) {
                 var grams = Math.round((parseFloat(t.qty) || 0) * 1000);
+                // t.cost is the total pack price (get_price_tiers); fall back to
+                // qty × per-kg price for older shapes.
+                var packCost = (t.cost != null) ? (parseFloat(t.cost) || 0)
+                                                 : (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0);
                 if (grams > 0) {
-                    packs.push({ g: grams, cost: (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0) });
+                    packs.push({ g: grams, cost: packCost });
                 }
             });
             if (!packs.length) { return { qty: needed, cost: needed * fb }; }

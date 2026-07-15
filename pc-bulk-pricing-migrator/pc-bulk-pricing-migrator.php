@@ -2,7 +2,7 @@
 /**
  * Plugin Name: PC Bulk Pricing Migrator (temporary)
  * Description: One-time helper for Product Costings. Creates the first Bulk Pricing pack on each Trade Name from its existing price-per-kg and MOQ fields, so you don't have to enter the original pricing manually. Preview first, then apply. Safe to delete once run.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: KrullDNA
  * Text Domain: pc-bulk-pricing-migrator
  */
@@ -64,10 +64,11 @@ function pc_bpm_scan( $apply ) {
             $status = 'skip';
             $detail = __( 'no price found', 'pc-bulk-pricing-migrator' );
         } else {
-            $detail = sprintf( '%s kg @ %s / kg', rtrim( rtrim( number_format( $pack, 3 ), '0' ), '.' ), $price );
+            $pack_price = $price * $pack; // Stored price is the total pack price.
+            $detail = sprintf( '%s kg pack for %s (%s / kg)', rtrim( rtrim( number_format( $pack, 3 ), '0' ), '.' ), $pack_price, $price );
             if ( $apply ) {
                 update_post_meta( $id, '_pc_price_tiers', array(
-                    array( 'qty' => $pack, 'price' => $price, 'unit' => 'kg' ),
+                    array( 'qty' => $pack, 'price' => $pack_price, 'unit' => 'kg' ),
                 ) );
                 $updated++;
                 $status = 'added';

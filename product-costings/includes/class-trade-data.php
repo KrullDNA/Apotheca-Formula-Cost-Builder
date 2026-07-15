@@ -226,13 +226,14 @@ class PC_Trade_Data {
     }
 
     /**
-     * Bulk pricing tiers resolved to a per-kg basis for costing.
+     * Bulk pricing tiers resolved for costing.
      *
-     * Litre-priced tiers are converted using the material's specific gravity:
-     * qty(kg) = qty(L) × SG, price(per kg) = price(per L) ÷ SG. When a tier is
-     * in litres but no specific gravity is set, its values are used as-is.
+     * Each stored tier is a pack: a pack size (Kg or L) and the TOTAL price of
+     * that pack. Litre packs are converted to kg using the material's specific
+     * gravity: qty(kg) = qty(L) × SG (the pack's total price is unchanged).
      *
-     * Each returned tier: array( 'qty' => float (kg), 'price' => float (per kg) ).
+     * Each returned tier: array( 'qty' => float (kg pack size), 'cost' => float
+     * (total pack price), 'price' => float (derived per-kg = cost ÷ qty) ).
      * Sorted ascending by quantity. Empty when none are defined.
      *
      * @param int $post_id Trade name post ID.
@@ -247,14 +248,20 @@ class PC_Trade_Data {
         $sg    = self::get_specific_gravity( $post_id );
         $clean = array();
         foreach ( $raw as $tier ) {
+            $pack_cost = $tier['price']; // Stored value is the total pack price.
             if ( 'L' === $tier['unit'] && $sg > 0 ) {
-                $qty_kg   = $tier['qty'] * $sg;
-                $price_kg = $tier['price'] / $sg;
+                $qty_kg = $tier['qty'] * $sg;
             } else {
-                $qty_kg   = $tier['qty'];
-                $price_kg = $tier['price'];
+                $qty_kg = $tier['qty'];
             }
-            $clean[] = array( 'qty' => $qty_kg, 'price' => $price_kg );
+            if ( $qty_kg <= 0 ) {
+                continue;
+            }
+            $clean[] = array(
+                'qty'   => $qty_kg,
+                'cost'  => $pack_cost,
+                'price' => $pack_cost / $qty_kg, // Per-kg, for display.
+            );
         }
 
         usort( $clean, function ( $a, $b ) {
@@ -298,7 +305,7 @@ class PC_Trade_Data {
             return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
         }
 
-        // Build integer-gram packs (pack size + whole-pack cost).
+        // Build integer-gram packs (pack size + whole-pack total price).
         $packs = array();
         foreach ( $tiers as $tier ) {
             if ( $tier['qty'] <= 0 ) {
@@ -306,7 +313,7 @@ class PC_Trade_Data {
             }
             $grams = (int) round( $tier['qty'] * 1000 );
             if ( $grams > 0 ) {
-                $packs[] = array( 'g' => $grams, 'cost' => $tier['qty'] * $tier['price'] );
+                $packs[] = array( 'g' => $grams, 'cost' => $tier['cost'] );
             }
         }
         if ( empty( $packs ) ) {
