@@ -279,7 +279,7 @@ class PC_Product_Metaboxes {
             <p>
                 <label for="pc-waste-percent"><strong><?php esc_html_e( 'Waste %', 'product-costings' ); ?></strong></label>
                 <input type="number" id="pc-waste-percent" name="pc_waste_percent" value="<?php echo esc_attr( $waste ); ?>" step="0.5" min="0" max="50" style="width:70px;">
-                <span class="description"><?php esc_html_e( 'Manufacturing waste allowance added to batch size. Set this to the same value as the Batch Costings widget to match front-end figures.', 'product-costings' ); ?></span>
+                <span class="description"><?php esc_html_e( 'Manufacturing waste allowance added to the batch size (e.g. 2% → batch × 1.02). Ingredient quantities and costs use this larger figure, while units per batch use the batch size WITHOUT waste — so the cost of the wasted material is paid for and spread across the sellable units, raising the final unit cost. Set this to the same value as the Batch Costings widget to match front-end figures.', 'product-costings' ); ?></span>
             </p>
             <table class="widefat striped">
                 <tr>

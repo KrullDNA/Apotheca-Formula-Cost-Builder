@@ -57,6 +57,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.4
+- Cost Summary: clarified the Waste % note — ingredient quantities/costs use batch ×
+  (1 + waste%), units use the batch size without waste, so wasted material is paid for
+  and spread across the sellable units (raising the final unit cost).
+
 ### 1.10.3
 - Front-end MOQ column shows the actual value instead of rounding to 2 dp (e.g. 0.017
   kg now displays as "0.017 kg", not "0.02 kg"); trailing zeros are stripped.
