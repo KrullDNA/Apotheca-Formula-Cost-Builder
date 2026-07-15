@@ -60,6 +60,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.1
+- The front-end Formula Ingredients Table **MOQ column now reflects the bulk pricing
+  table** — it shows the smallest quantity across the material's price breaks/packs
+  (the real minimum order), falling back to the old MOQ snapshot when a material has no
+  bulk pricing.
+
 ### 1.10.0
 - **Dual bulk-pricing styles per row: Price / kg OR Pack price.** Supports supplier
   lists quoted per kg at quantity ranges (e.g. 1–4 kg = 1053.08/kg, 5–9 = 956.92/kg) —

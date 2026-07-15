@@ -284,6 +284,32 @@ class PC_Trade_Data {
     }
 
     /**
+     * Effective minimum order quantity (kg) from the bulk pricing table — the
+     * smallest quantity across all rows (per-kg break thresholds and pack
+     * sizes). Returns null when the material has no bulk pricing.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return float|null
+     */
+    public static function get_effective_moq( $post_id ) {
+        $tiers = self::get_price_tiers( $post_id );
+        $min   = null;
+
+        foreach ( $tiers['perkg'] as $r ) {
+            if ( null === $min || $r['threshold'] < $min ) {
+                $min = $r['threshold'];
+            }
+        }
+        foreach ( $tiers['packs'] as $p ) {
+            if ( null === $min || $p['qty'] < $min ) {
+                $min = $p['qty'];
+            }
+        }
+
+        return $min;
+    }
+
+    /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
      * Evaluates two pricing styles and picks the cheaper:
