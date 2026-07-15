@@ -270,12 +270,12 @@ class PC_Trade_Data {
     /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
-     * Each bulk pricing tier is a pack size purchased in whole multiples at its
-     * per-kg price (the tiers replace MOQ). For each tier it buys
-     * ceil( needed ÷ pack ) whole packs and returns the cheapest tier total —
-     * e.g. 2.2 kg on a 1 kg pack buys 3 × 1 kg = $150, while 4.2 kg finds a
-     * single 5 kg pack cheaper (5 × the 5 kg price). Without tiers it is simply
-     * needed × base price.
+     * Each bulk pricing tier is a pack size bought in whole multiples at its
+     * per-kg price (the tiers replace MOQ). Packs of different sizes may be
+     * combined, and the cheapest combination that covers the need is chosen —
+     * e.g. 2.2 kg → 3 × 1 kg = $150, 6 kg → 1 × 5 kg + 1 × 1 kg = $250, and a
+     * single large pack is used whenever it is cheapest. Without tiers it is
+     * simply needed × base price.
      *
      * @param int   $trade_id       Trade name post ID (0 when none selected).
      * @param float $kg_needed       Kilograms required for the batch.
@@ -298,27 +298,93 @@ class PC_Trade_Data {
             return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
         }
 
-        $best = null;
+        // Build integer-gram packs (pack size + whole-pack cost).
+        $packs = array();
         foreach ( $tiers as $tier ) {
             if ( $tier['qty'] <= 0 ) {
                 continue;
             }
-            $packs = ceil( $kg_needed / $tier['qty'] );      // Whole packs to cover the need.
-            $qty   = $packs * $tier['qty'];
-            $cost  = $qty * $tier['price'];
-            if ( null === $best || $cost < $best['cost'] ) {
-                $best = array( 'qty' => $qty, 'price' => $tier['price'], 'cost' => $cost );
+            $grams = (int) round( $tier['qty'] * 1000 );
+            if ( $grams > 0 ) {
+                $packs[] = array( 'g' => $grams, 'cost' => $tier['qty'] * $tier['price'] );
+            }
+        }
+        if ( empty( $packs ) ) {
+            return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
+        }
+
+        $need_g = (int) ceil( $kg_needed * 1000 );
+
+        // Cheapest single pack size (safety answer + fallback for huge needs).
+        $single = null;
+        foreach ( $packs as $p ) {
+            $count = (int) ceil( $need_g / $p['g'] );
+            $cost  = $count * $p['cost'];
+            if ( null === $single || $cost < $single['cost'] ) {
+                $single = array( 'qty' => ( $count * $p['g'] ) / 1000, 'cost' => $cost );
             }
         }
 
-        if ( null === $best ) {
-            return array(
-                'qty'   => $kg_needed,
-                'price' => $fallback_price,
-                'cost'  => $kg_needed * $fallback_price,
-            );
+        // Reduce the problem size by the GCD of all pack sizes and the need.
+        $unit = $need_g;
+        foreach ( $packs as $p ) {
+            $unit = self::gcd_int( $unit, $p['g'] );
         }
-        return $best;
+        if ( $unit < 1 ) {
+            $unit = 1;
+        }
+        $target = (int) ceil( $need_g / $unit );
+
+        // Guard against pathological sizes.
+        if ( $target > 300000 ) {
+            return array( 'qty' => $single['qty'], 'price' => 0, 'cost' => $single['cost'] );
+        }
+
+        // DP: minimum cost to cover at least w units (overfill allowed).
+        $dp     = array_fill( 0, $target + 1, INF );
+        $choice = array_fill( 0, $target + 1, -1 );
+        $dp[0]  = 0.0;
+        for ( $w = 1; $w <= $target; $w++ ) {
+            foreach ( $packs as $idx => $p ) {
+                $u    = (int) ( $p['g'] / $unit );
+                $prev = ( $w - $u > 0 ) ? $w - $u : 0;
+                $c    = $p['cost'] + $dp[ $prev ];
+                if ( $c < $dp[ $w ] ) {
+                    $dp[ $w ]     = $c;
+                    $choice[ $w ] = $idx;
+                }
+            }
+        }
+
+        // Reconstruct purchased quantity.
+        $qty_g = 0;
+        $w     = $target;
+        while ( $w > 0 && isset( $choice[ $w ] ) && $choice[ $w ] >= 0 ) {
+            $p      = $packs[ $choice[ $w ] ];
+            $qty_g += $p['g'];
+            $u      = (int) ( $p['g'] / $unit );
+            $w      = ( $w - $u > 0 ) ? $w - $u : 0;
+        }
+
+        return array(
+            'qty'   => $qty_g / 1000,
+            'price' => 0,
+            'cost'  => $dp[ $target ],
+        );
+    }
+
+    /**
+     * Greatest common divisor of two non-negative integers.
+     */
+    private static function gcd_int( $a, $b ) {
+        $a = (int) abs( $a );
+        $b = (int) abs( $b );
+        while ( $b ) {
+            $t = $b;
+            $b = $a % $b;
+            $a = $t;
+        }
+        return $a;
     }
 
     /**

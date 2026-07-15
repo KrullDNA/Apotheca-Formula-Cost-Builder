@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.7.1)
+# Product Costings — User Guide (v1.8.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -176,25 +176,21 @@ unit**, e.g.:
 | Kg | 5  | 40 |
 | Kg | 20 | 30 |
 
-**Pack-based cheapest purchasing *(1.7.1)*.** Each pack is bought in **whole
-multiples** at its per-unit price, and the pack sizes **replace MOQ**. For each
-ingredient the plugin buys enough whole packs of a single size to cover the kg needed,
-and picks the pack size that gives the **cheapest total**. Worked examples with the
-table above:
+**Pack-based cheapest purchasing *(1.8.0)*.** Each pack is bought in **whole multiples**
+at its per-unit price, packs of **different sizes may be combined**, and the plugin
+picks the **cheapest combination** that covers the kg needed. The pack sizes **replace
+MOQ**. Worked examples with the table above:
 
-- Need **2.2 kg** → 3 × 1 kg packs = **$150** (cheaper than one 5 kg pack @ $200).
-- Need **4.2 kg** → one 5 kg pack = **$200** (cheaper than 5 × 1 kg = $250).
-- Need **6 kg** → 6 × 1 kg packs = **$300** (cheaper than two 5 kg packs = $400).
-- Need **18 kg** → one 20 kg pack = **$600** (cheaper than 4 × 5 kg = $800).
-- Need **25 kg** → 5 × 5 kg packs = **$1000** (cheaper than one 20 kg + rounding).
+- Need **2.2 kg** → 3 × 1 kg = **$150**.
+- Need **4.2 kg** → 1 × 5 kg = **$200** (cheaper than 5 × 1 kg = $250).
+- Need **6 kg** → 1 × 5 kg + 1 × 1 kg = **$250** (cheaper than 6 × 1 kg = $300).
+- Need **18 kg** → 1 × 20 kg = **$600** (the single large pack wins here).
+- Need **25 kg** → 1 × 20 kg + 1 × 5 kg = **$800** (cheaper than 5 × 5 kg = $1000). If
+  you add a 25 kg pack at a good price, it's used whenever it's the cheapest.
 
 The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg smallest
 pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
-exactly where scaling a batch up moves you onto a cheaper pack size.
-
-> Note: costing chooses **one pack size** per ingredient (it does not mix pack sizes in
-> a single order). Mixing (e.g. 1 × 5 kg + 1 × 1 kg for 6 kg) can occasionally be
-> cheaper — ask if you'd like that.
+exactly where scaling a batch up moves you onto cheaper packs.
 
 Ingredients with **no packs defined** are simply `kg needed × Price/KG` (no MOQ
 rounding — the MOQ field no longer affects costing). Add a smallest pack if you need to

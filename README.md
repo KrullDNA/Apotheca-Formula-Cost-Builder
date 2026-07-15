@@ -50,6 +50,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.8.0
+- Bulk pricing now finds the **cheapest combination of pack sizes** (packs may be
+  mixed): 6 kg → 1 × 5 kg + 1 × 1 kg = $250; 25 kg → 1 × 20 kg + 1 × 5 kg = $800; a
+  single large pack is used whenever it's cheapest. Solved with a GCD-reduced DP
+  (min-cost cover) shared between PHP costing and the admin live calc.
+
 ### 1.7.1
 - Bulk pricing tiers are now treated as **pack sizes bought in whole multiples**: an
   ingredient needing 2.2 kg on a 1 kg pack buys 3 × 1 kg = $150 (not 2.2 × price). The

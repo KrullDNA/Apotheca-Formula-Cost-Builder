@@ -650,8 +650,9 @@
         },
 
         // Cheapest total cost to obtain at least `needed` kg. Each tier is a
-        // pack size bought in whole multiples at its per-kg price; picks the
-        // cheapest tier. Without tiers it is needed × fallback price. Mirrors
+        // pack size bought in whole multiples at its per-kg price; packs may be
+        // combined and the cheapest covering combination is chosen. Without
+        // tiers it is needed × fallback price. Mirrors
         // PC_Trade_Data::cheapest_purchase() in PHP.
         lineCost: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
@@ -659,15 +660,44 @@
                 return needed * (parseFloat(fallback) || 0);
             }
             if (needed <= 0) { return 0; }
-            var best = null;
+
+            var packs = [];
             tiers.forEach(function (t) {
-                var pack = parseFloat(t.qty) || 0;
-                if (pack <= 0) { return; }
-                var qty = Math.ceil(needed / pack) * pack;
-                var c   = qty * (parseFloat(t.price) || 0);
-                if (best === null || c < best) { best = c; }
+                var grams = Math.round((parseFloat(t.qty) || 0) * 1000);
+                if (grams > 0) {
+                    packs.push({ g: grams, cost: (parseFloat(t.qty) || 0) * (parseFloat(t.price) || 0) });
+                }
             });
-            return best === null ? needed * (parseFloat(fallback) || 0) : best;
+            if (!packs.length) { return needed * (parseFloat(fallback) || 0); }
+
+            var needG = Math.ceil(needed * 1000);
+
+            // Cheapest single pack size (safety + fallback for huge needs).
+            var single = null;
+            packs.forEach(function (p) {
+                var c = Math.ceil(needG / p.g) * p.cost;
+                if (single === null || c < single) { single = c; }
+            });
+
+            // GCD reduction.
+            function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a; }
+            var unit = needG;
+            packs.forEach(function (p) { unit = gcd(unit, p.g); });
+            if (unit < 1) { unit = 1; }
+            var target = Math.ceil(needG / unit);
+            if (target > 300000) { return single; }
+
+            var dp = new Array(target + 1).fill(Infinity);
+            dp[0] = 0;
+            for (var w = 1; w <= target; w++) {
+                for (var i = 0; i < packs.length; i++) {
+                    var u = packs[i].g / unit;
+                    var prev = (w - u > 0) ? w - u : 0;
+                    var c = packs[i].cost + dp[prev];
+                    if (c < dp[w]) { dp[w] = c; }
+                }
+            }
+            return dp[target];
         },
 
         /* ──────────────────────────────
