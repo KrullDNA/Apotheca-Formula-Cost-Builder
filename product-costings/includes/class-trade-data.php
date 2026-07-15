@@ -270,11 +270,12 @@ class PC_Trade_Data {
     /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
-     * With bulk pricing tiers, the tiers ARE the purchase increments (MOQ is
-     * no longer applied separately). For each price break it evaluates buying
-     * max( needed, break quantity ) at that break's price and returns the
-     * cheapest total — so buying 5 kg at the 5 kg price can beat buying 4.2 kg
-     * at the 1 kg price. Without tiers it is simply needed × base price.
+     * Each bulk pricing tier is a pack size purchased in whole multiples at its
+     * per-kg price (the tiers replace MOQ). For each tier it buys
+     * ceil( needed ÷ pack ) whole packs and returns the cheapest tier total —
+     * e.g. 2.2 kg on a 1 kg pack buys 3 × 1 kg = $150, while 4.2 kg finds a
+     * single 5 kg pack cheaper (5 × the 5 kg price). Without tiers it is simply
+     * needed × base price.
      *
      * @param int   $trade_id       Trade name post ID (0 when none selected).
      * @param float $kg_needed       Kilograms required for the batch.
@@ -293,13 +294,29 @@ class PC_Trade_Data {
             );
         }
 
+        if ( $kg_needed <= 0 ) {
+            return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
+        }
+
         $best = null;
         foreach ( $tiers as $tier ) {
-            $qty  = max( $kg_needed, $tier['qty'] );
-            $cost = $qty * $tier['price'];
+            if ( $tier['qty'] <= 0 ) {
+                continue;
+            }
+            $packs = ceil( $kg_needed / $tier['qty'] );      // Whole packs to cover the need.
+            $qty   = $packs * $tier['qty'];
+            $cost  = $qty * $tier['price'];
             if ( null === $best || $cost < $best['cost'] ) {
                 $best = array( 'qty' => $qty, 'price' => $tier['price'], 'cost' => $cost );
             }
+        }
+
+        if ( null === $best ) {
+            return array(
+                'qty'   => $kg_needed,
+                'price' => $fallback_price,
+                'cost'  => $kg_needed * $fallback_price,
+            );
         }
         return $best;
     }

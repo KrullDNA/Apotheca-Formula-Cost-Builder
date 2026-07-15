@@ -50,6 +50,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.7.1
+- Bulk pricing tiers are now treated as **pack sizes bought in whole multiples**: an
+  ingredient needing 2.2 kg on a 1 kg pack buys 3 × 1 kg = $150 (not 2.2 × price). The
+  cheapest single pack size is chosen per ingredient. "Quantity from" column renamed to
+  **Pack size**.
+
 ### 1.7.0
 - **Cheapest-total bulk purchasing**: ingredient costing now picks the cheapest way to
   buy at least the kg needed, buying up to a cheaper price break when that beats buying

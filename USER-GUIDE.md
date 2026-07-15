@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.7.0)
+# Product Costings — User Guide (v1.7.1)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -166,37 +166,39 @@ warns live whenever this material is used outside the range.
 
 ### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
 
-Optional supplier price breaks for accurate scale-up costing. In the **Bulk Pricing**
-box, add a row per price break with a **Unit** (Kg or L), a **Quantity from**, and a
-**Price per unit**, e.g.:
+Optional supplier pack sizes for accurate scale-up costing. In the **Bulk Pricing**
+box, add a row per pack with a **Unit** (Kg or L), a **Pack size**, and a **Price per
+unit**, e.g.:
 
-| Unit | Quantity from | Price per unit |
+| Unit | Pack size | Price per unit |
 |---|---|---|
 | Kg | 1  | 50 |
 | Kg | 5  | 40 |
 | Kg | 20 | 30 |
 
-**Cheapest-total purchasing *(1.7.0)*.** The tiers now fully drive purchasing — they
-are the increments, and **MOQ is no longer used** when tiers are set. For each
-ingredient the plugin picks the **cheapest total** way to obtain at least the kg
-needed, buying up to a cheaper price break when that beats buying less. Worked examples
-with the table above:
+**Pack-based cheapest purchasing *(1.7.1)*.** Each pack is bought in **whole
+multiples** at its per-unit price, and the pack sizes **replace MOQ**. For each
+ingredient the plugin buys enough whole packs of a single size to cover the kg needed,
+and picks the pack size that gives the **cheapest total**. Worked examples with the
+table above:
 
-- Need **2.2 kg** → buy 2.2 kg @ $50 = **$110** (rounding up to the 5 kg break would
-  cost $200, so it doesn't).
-- Need **4.2 kg** → buy **5 kg @ $40 = $200** (cheaper than 4.2 kg @ $50 = $210), so it
-  buys the extra 0.8 kg to reach the break.
-- Need **6 kg** → buy 6 kg @ $40 = **$240** (uses the 5 kg price; does not jump to the
-  20 kg break).
-- Need **18 kg** → buy 20 kg @ $30 = **$600** (cheaper than 18 kg @ $40 = $720).
+- Need **2.2 kg** → 3 × 1 kg packs = **$150** (cheaper than one 5 kg pack @ $200).
+- Need **4.2 kg** → one 5 kg pack = **$200** (cheaper than 5 × 1 kg = $250).
+- Need **6 kg** → 6 × 1 kg packs = **$300** (cheaper than two 5 kg packs = $400).
+- Need **18 kg** → one 20 kg pack = **$600** (cheaper than 4 × 5 kg = $800).
+- Need **25 kg** → 5 × 5 kg packs = **$1000** (cheaper than one 20 kg + rounding).
 
-The smallest tier's quantity acts as the minimum purchase (needing 0.5 kg with a 1 kg
-smallest tier buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so
-it now shows exactly where scaling a batch up crosses into a cheaper price break.
+The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg smallest
+pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
+exactly where scaling a batch up moves you onto a cheaper pack size.
 
-Ingredients with **no tiers** are simply `kg needed × Price/KG` (no MOQ rounding — the
-MOQ field no longer affects costing). Add a smallest tier if you need to enforce a
-minimum purchase for such a material.
+> Note: costing chooses **one pack size** per ingredient (it does not mix pack sizes in
+> a single order). Mixing (e.g. 1 × 5 kg + 1 × 1 kg for 6 kg) can occasionally be
+> cheaper — ask if you'd like that.
+
+Ingredients with **no packs defined** are simply `kg needed × Price/KG` (no MOQ
+rounding — the MOQ field no longer affects costing). Add a smallest pack if you need to
+enforce a minimum purchase for such a material.
 
 **Litre / volume pricing *(new in 1.6.0)*.** Some suppliers price by the litre. Set a
 row's **Unit** to **L** and fill in the **Specific Gravity (kg/L)** field (density

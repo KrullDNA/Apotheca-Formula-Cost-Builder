@@ -65,7 +65,7 @@ class PC_Trade_Name_Fields {
         $currency = get_option( 'pc_currency_symbol', '$' );
         ?>
         <p class="description">
-            <?php esc_html_e( 'Optional supplier price breaks. For each quantity break choose the Unit (Kg or L), the quantity it starts from, and the price per that unit — e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price is used, so scaling up picks up bulk pricing automatically. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
+            <?php esc_html_e( 'Optional supplier pack sizes. For each pack choose the Unit (Kg or L), the Pack size, and its price per that unit — e.g. a 1 kg pack @ 50, a 5 kg pack @ 40, a 20 kg pack @ 30. Costing buys whole packs to cover each ingredient and picks the cheapest option: needing 2.2 kg buys 3 × 1 kg packs = 150, while needing 4.2 kg buys one 5 kg pack = 200. The pack sizes replace MOQ. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
         </p>
         <p>
             <label>
@@ -78,7 +78,7 @@ class PC_Trade_Name_Fields {
             <thead>
                 <tr>
                     <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
-                    <th style="width:140px;"><?php esc_html_e( 'Quantity from', 'product-costings' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Pack size', 'product-costings' ); ?></th>
                     <th style="width:140px;"><?php esc_html_e( 'Price per unit', 'product-costings' ); ?></th>
                     <th style="width:120px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
                     <th style="width:50px;">&nbsp;</th>

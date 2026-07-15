@@ -649,22 +649,25 @@
             }
         },
 
-        // Cheapest total cost to obtain at least `needed` kg, using tiers if
-        // present (buy up to a cheaper price break when that beats buying less).
-        // Without tiers it is simply needed × fallback price. Mirrors
+        // Cheapest total cost to obtain at least `needed` kg. Each tier is a
+        // pack size bought in whole multiples at its per-kg price; picks the
+        // cheapest tier. Without tiers it is needed × fallback price. Mirrors
         // PC_Trade_Data::cheapest_purchase() in PHP.
         lineCost: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
             if (!tiers || !tiers.length) {
                 return needed * (parseFloat(fallback) || 0);
             }
+            if (needed <= 0) { return 0; }
             var best = null;
             tiers.forEach(function (t) {
-                var q = Math.max(needed, parseFloat(t.qty) || 0);
-                var c = q * (parseFloat(t.price) || 0);
+                var pack = parseFloat(t.qty) || 0;
+                if (pack <= 0) { return; }
+                var qty = Math.ceil(needed / pack) * pack;
+                var c   = qty * (parseFloat(t.price) || 0);
                 if (best === null || c < best) { best = c; }
             });
-            return best === null ? 0 : best;
+            return best === null ? needed * (parseFloat(fallback) || 0) : best;
         },
 
         /* ──────────────────────────────
