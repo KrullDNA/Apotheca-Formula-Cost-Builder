@@ -204,7 +204,20 @@ class PC_Product_Metaboxes {
             $usage_max = PC_Trade_Data::get( $trade_id, 'usage_max' );
             $cur_price = PC_Trade_Data::get( $trade_id, 'price_per_kg' );
             $tiers     = PC_Trade_Data::get_price_tiers( $trade_id );
-            if ( '' !== $price && '' !== $cur_price && abs( floatval( $price ) - floatval( $cur_price ) ) > 0.0001 ) {
+
+            // Reflect the bulk pricing table: MOQ = smallest quantity, Price/KG
+            // = per-kg rate at that quantity. Fall back to the snapshot / tn_*
+            // fields when the material has no bulk pricing.
+            $eff_moq = PC_Trade_Data::get_effective_moq( $trade_id );
+            if ( null !== $eff_moq ) {
+                $moq = $eff_moq;
+            }
+            $base_price = PC_Trade_Data::get_base_price_per_kg( $trade_id );
+            if ( null !== $base_price ) {
+                $price = $base_price;
+            }
+
+            if ( '' !== $price && '' !== $cur_price && abs( floatval( $price ) - floatval( $cur_price ) ) > 0.0001 && null === $base_price ) {
                 $stale = true;
             }
         }

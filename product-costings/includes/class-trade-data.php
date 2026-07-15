@@ -310,6 +310,38 @@ class PC_Trade_Data {
     }
 
     /**
+     * The per-kg price at the smallest bulk pricing quantity (the "list" rate
+     * paired with the effective MOQ). For a per-kg break it is that break's
+     * rate; for a pack it is pack price ÷ pack size. Null when no bulk pricing.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return float|null
+     */
+    public static function get_base_price_per_kg( $post_id ) {
+        $tiers   = self::get_price_tiers( $post_id );
+        $min_qty = null;
+        $rate    = null;
+
+        foreach ( $tiers['perkg'] as $r ) {
+            if ( null === $min_qty || $r['threshold'] < $min_qty ) {
+                $min_qty = $r['threshold'];
+                $rate    = $r['rate'];
+            }
+        }
+        foreach ( $tiers['packs'] as $p ) {
+            if ( $p['qty'] <= 0 ) {
+                continue;
+            }
+            if ( null === $min_qty || $p['qty'] < $min_qty ) {
+                $min_qty = $p['qty'];
+                $rate    = $p['cost'] / $p['qty'];
+            }
+        }
+
+        return $rate;
+    }
+
+    /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
      * Evaluates two pricing styles and picks the cheaper:

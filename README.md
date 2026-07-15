@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.5
+- Admin Formula Ingredients table now reflects bulk pricing: the **MOQ** and **Price/KG**
+  columns derive from the Trade Name's bulk pricing (smallest quantity and its per-kg
+  rate) on render and on Refresh Ingredient Data / ingredient select, falling back to
+  the `tn_moq` / `tn_price_per_kg` fields when a material has no bulk pricing.
+
 ### 1.10.4
 - Cost Summary: clarified the Waste % note — ingredient quantities/costs use batch ×
   (1 + waste%), units use the batch size without waste, so wasted material is paid for
