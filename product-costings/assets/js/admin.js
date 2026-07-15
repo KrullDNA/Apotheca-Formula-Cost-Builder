@@ -687,9 +687,10 @@
             var target = Math.ceil(needG / unit);
             if (target > 300000) { return single; }
 
-            // Min cost to cover ≥ w units; tie-break on least quantity (waste).
+            // Min cost to cover ≥ w units; on a cost tie prefer the GREATER
+            // quantity (free extra stock beats buying less for the same money).
             var dpCost = new Array(target + 1).fill(Infinity);
-            var dpQty  = new Array(target + 1).fill(Infinity);
+            var dpQty  = new Array(target + 1).fill(-1);
             dpCost[0] = 0; dpQty[0] = 0;
             for (var w = 1; w <= target; w++) {
                 for (var i = 0; i < packs.length; i++) {
@@ -698,7 +699,7 @@
                     if (dpCost[prev] === Infinity) { continue; }
                     var c = packs[i].cost + dpCost[prev];
                     var q = packs[i].g + dpQty[prev];
-                    if (c < dpCost[w] - 1e-9 || (Math.abs(c - dpCost[w]) <= 1e-9 && q < dpQty[w])) {
+                    if (c < dpCost[w] - 1e-9 || (Math.abs(c - dpCost[w]) <= 1e-9 && q > dpQty[w])) {
                         dpCost[w] = c; dpQty[w] = q;
                     }
                 }

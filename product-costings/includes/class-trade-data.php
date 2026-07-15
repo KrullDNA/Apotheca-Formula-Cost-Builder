@@ -341,10 +341,11 @@ class PC_Trade_Data {
         }
 
         // DP: minimum cost to cover at least w units (overfill allowed).
-        // Primary objective cost; tie-break on the least quantity purchased
-        // (least wastage) when two options cost the same.
+        // Primary objective cost; when two options cost the same, prefer the
+        // GREATER quantity — the extra material is free usable stock for
+        // another product, so more-for-the-same-money wins the tie.
         $dp_cost = array_fill( 0, $target + 1, INF );
-        $dp_qty  = array_fill( 0, $target + 1, INF ); // Grams purchased.
+        $dp_qty  = array_fill( 0, $target + 1, -1 ); // Grams purchased.
         $dp_cost[0] = 0.0;
         $dp_qty[0]  = 0;
         for ( $w = 1; $w <= $target; $w++ ) {
@@ -357,7 +358,7 @@ class PC_Trade_Data {
                 $c = $p['cost'] + $dp_cost[ $prev ];
                 $q = $p['g'] + $dp_qty[ $prev ];
                 if ( $c < $dp_cost[ $w ] - 1e-9
-                    || ( abs( $c - $dp_cost[ $w ] ) <= 1e-9 && $q < $dp_qty[ $w ] ) ) {
+                    || ( abs( $c - $dp_cost[ $w ] ) <= 1e-9 && $q > $dp_qty[ $w ] ) ) {
                     $dp_cost[ $w ] = $c;
                     $dp_qty[ $w ]  = $q;
                 }

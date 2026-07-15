@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.8.0)
+# Product Costings — User Guide (v1.8.2)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -191,6 +191,10 @@ MOQ**. Worked examples with the table above:
 The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg smallest
 pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
 exactly where scaling a batch up moves you onto cheaper packs.
+
+When two combinations cost **exactly the same**, the plugin buys the **larger** one —
+the extra material is free usable stock for another product. (A genuinely cheaper
+option always wins; this only decides true ties.)
 
 Ingredients with **no packs defined** are simply `kg needed × Price/KG` (no MOQ
 rounding — the MOQ field no longer affects costing). Add a smallest pack if you need to

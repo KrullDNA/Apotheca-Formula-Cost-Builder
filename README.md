@@ -50,10 +50,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.8.2
+- Cost-tie rule reversed: when two pack combinations cost the same, the optimiser now
+  buys the **larger** quantity (the extra is free usable stock for another product).
+  Cost still takes priority — a cheaper option always wins.
+
 ### 1.8.1
-- Bulk pricing optimiser now breaks cost ties by **least wastage**: when two pack
-  combinations cost the same, the one buying the smaller total quantity is chosen
-  (cost still takes priority over wastage).
+- Bulk pricing optimiser breaks cost ties by quantity (superseded by 1.8.2, which
+  prefers the larger quantity).
 
 ### 1.8.0
 - Bulk pricing now finds the **cheapest combination of pack sizes** (packs may be
