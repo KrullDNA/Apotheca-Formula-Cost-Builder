@@ -57,6 +57,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.10.3
+- Front-end MOQ column shows the actual value instead of rounding to 2 dp (e.g. 0.017
+  kg now displays as "0.017 kg", not "0.02 kg"); trailing zeros are stripped.
+
 ### 1.10.2
 - Front-end Formula Ingredients Table: MOQ column widened slightly and set to not wrap,
   so values like "0.09 kg" stay on one line.
