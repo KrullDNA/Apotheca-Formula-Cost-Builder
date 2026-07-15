@@ -36,6 +36,15 @@ class PC_Trade_Name_Fields {
         );
 
         add_meta_box(
+            'pc_trade_pricing',
+            __( 'Bulk Pricing (quantity breaks)', 'product-costings' ),
+            array( $this, 'render_pricing_metabox' ),
+            'trade-names',
+            'normal',
+            'default'
+        );
+
+        add_meta_box(
             'pc_trade_where_used',
             __( 'Where Used', 'product-costings' ),
             array( $this, 'render_where_used_metabox' ),
@@ -43,6 +52,62 @@ class PC_Trade_Name_Fields {
             'normal',
             'default'
         );
+    }
+
+    /* ───────────────────────────────────────────────
+     * Bulk Pricing (quantity breaks)
+     * ─────────────────────────────────────────────── */
+
+    public function render_pricing_metabox( $post ) {
+        // Nonce is shared with the Formulation Data metabox (same edit form).
+        $tiers = PC_Trade_Data::get_price_tiers( $post->ID );
+        ?>
+        <p class="description">
+            <?php esc_html_e( 'Optional supplier price breaks. Enter the price per kg at each purchase quantity, e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price per kg is used — so scaling a batch up automatically picks up bulk pricing. Leave empty to use the single Price/KG field for all quantities.', 'product-costings' ); ?>
+        </p>
+        <table class="widefat striped" id="pc-price-tier-table" style="max-width:420px;">
+            <thead>
+                <tr>
+                    <th style="width:160px;"><?php esc_html_e( 'Quantity from (kg)', 'product-costings' ); ?></th>
+                    <th style="width:160px;"><?php esc_html_e( 'Price per kg', 'product-costings' ); ?></th>
+                    <th style="width:50px;">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody id="pc-price-tier-body">
+                <?php
+                if ( empty( $tiers ) ) {
+                    $tiers = array( array( 'qty' => '', 'price' => '' ) );
+                }
+                foreach ( $tiers as $i => $tier ) :
+                    ?>
+                    <tr>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][qty]" value="<?php echo esc_attr( $tier['qty'] ); ?>" class="widefat" placeholder="1"></td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price]" value="<?php echo esc_attr( $tier['price'] ); ?>" class="widefat" placeholder="50.00"></td>
+                        <td><button type="button" class="button pc-tier-remove">&times;</button></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <p><button type="button" class="button" id="pc-tier-add"><?php esc_html_e( '+ Add Price Break', 'product-costings' ); ?></button></p>
+
+        <script>
+        jQuery(function ($) {
+            $('#pc-tier-add').on('click', function () {
+                var idx = $('#pc-price-tier-body tr').length;
+                $('#pc-price-tier-body').append(
+                    '<tr>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][qty]" class="widefat"></td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price]" class="widefat"></td>' +
+                    '<td><button type="button" class="button pc-tier-remove">&times;</button></td>' +
+                    '</tr>'
+                );
+            });
+            $('#pc-price-tier-table').on('click', '.pc-tier-remove', function () {
+                $(this).closest('tr').remove();
+            });
+        });
+        </script>
+        <?php
     }
 
     /* ───────────────────────────────────────────────
@@ -209,6 +274,22 @@ class PC_Trade_Name_Fields {
             } else {
                 update_post_meta( $post_id, $meta_key, floatval( $val ) );
             }
+        }
+
+        // Bulk pricing tiers.
+        $raw_tiers   = isset( $_POST['pc_price_tiers'] ) && is_array( $_POST['pc_price_tiers'] ) ? wp_unslash( $_POST['pc_price_tiers'] ) : array();
+        $clean_tiers = array();
+        foreach ( $raw_tiers as $tier ) {
+            $qty   = floatval( $tier['qty'] ?? 0 );
+            $price = floatval( $tier['price'] ?? 0 );
+            if ( $qty > 0 && $price > 0 ) {
+                $clean_tiers[] = array( 'qty' => $qty, 'price' => $price );
+            }
+        }
+        if ( empty( $clean_tiers ) ) {
+            delete_post_meta( $post_id, '_pc_price_tiers' );
+        } else {
+            update_post_meta( $post_id, '_pc_price_tiers', $clean_tiers );
         }
     }
 }

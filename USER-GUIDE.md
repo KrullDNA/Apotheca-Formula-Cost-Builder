@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.3.0)
+# Product Costings — User Guide (v1.4.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -68,8 +68,12 @@ A warning panel under the table checks your formula as you type:
 - **Total ≠ 100%** — the batch won't be right; fix before manufacturing.
 - **Usage-rate violations** — any row outside the min/max usage range set on its
   Trade Name is flagged and its row is tinted red (see §3.2).
-- **No preservative** — no row has the Function "Preservative". Ignore for anhydrous
-  or self-preserving formulas; otherwise, add one.
+- **No preservative** — no row has the Function "Preservative". If the formula is
+  genuinely anhydrous or self-preserving, tick the **"This formula is anhydrous or
+  self-preserving"** checkbox below the table to acknowledge it and hide the reminder
+  (saved per product). Otherwise, set the Function of your preservative row to
+  "Preservative". The checkbox is an acknowledgement only — it does not replace CPSR
+  or challenge-test (ISO 11930) sign-off.
 - **pH compatibility window** — the plugin intersects every ingredient's pH range and
   shows you the window in which *all* ingredients are stable (e.g. "4.5 – 6.0"). You
   get a warning if the ranges don't overlap at all, or if your product's target
@@ -155,6 +159,29 @@ data.
 **Usage Rate Limits** — the recommended usage range in a finished formula (% w/w),
 from the supplier's documentation. Leave blank for no limit. The formula builder
 warns live whenever this material is used outside the range.
+
+### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
+
+Optional supplier price breaks for accurate scale-up costing. In the **Bulk Pricing**
+box, add rows of **Quantity from (kg)** → **Price per kg**, e.g.:
+
+| Quantity from (kg) | Price per kg |
+|---|---|
+| 1  | 50 |
+| 5  | 40 |
+| 20 | 30 |
+
+When a batch requires (after MOQ rounding) at least a tier's quantity, that tier's
+price per kg is used for the whole purchase. So a batch needing 2.2 kg pays £50/kg,
+one needing 6 kg pays £40/kg, and one needing 25 kg pays £30/kg — and the **Batch Size
+Sweet Spot** panel now reflects real bulk pricing as you scale up. Below the smallest
+tier, the smallest tier's price applies.
+
+Leave the table empty to use the single **Price/KG** field for all quantities (the
+default). Tiers, when present, drive every batch-cost figure (admin Cost Summary,
+Batch Costings widget, Costings Dashboard, Sweet Spot). The "Raw Material Cost per KG"
+line and Cost Drivers still use the nominal Price/KG, as they represent the formula's
+intrinsic cost rather than a specific purchase.
 
 ### 3.2 Where Used box *(new)*
 

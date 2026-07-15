@@ -166,6 +166,69 @@ class PC_Trade_Data {
     }
 
     /**
+     * Get the bulk pricing tiers (quantity breaks) for a trade name.
+     *
+     * Each tier: array( 'qty' => float (kg threshold), 'price' => float (per kg) ).
+     * Sorted ascending by quantity. Empty when none are defined.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return array[]
+     */
+    public static function get_price_tiers( $post_id ) {
+        $rows = get_post_meta( $post_id, '_pc_price_tiers', true );
+        if ( ! is_array( $rows ) ) {
+            return array();
+        }
+
+        $clean = array();
+        foreach ( $rows as $row ) {
+            $qty   = isset( $row['qty'] ) ? floatval( $row['qty'] ) : 0;
+            $price = isset( $row['price'] ) ? floatval( $row['price'] ) : 0;
+            if ( $qty > 0 && $price > 0 ) {
+                $clean[] = array( 'qty' => $qty, 'price' => $price );
+            }
+        }
+
+        usort( $clean, function ( $a, $b ) {
+            if ( $a['qty'] == $b['qty'] ) {
+                return 0;
+            }
+            return ( $a['qty'] < $b['qty'] ) ? -1 : 1;
+        } );
+
+        return $clean;
+    }
+
+    /**
+     * Resolve the price per kg for a given purchase quantity using the trade
+     * name's bulk pricing tiers, falling back to a base price when no tier
+     * applies or no tiers are defined.
+     *
+     * The applicable tier is the one with the largest quantity threshold that
+     * is still ≤ the quantity purchased. Below the smallest threshold, the
+     * smallest tier's price is used.
+     *
+     * @param int   $post_id        Trade name post ID.
+     * @param float $qty            Quantity being purchased (kg).
+     * @param float $fallback_price Price per kg to use when no tiers exist.
+     * @return float
+     */
+    public static function price_for_qty( $post_id, $qty, $fallback_price ) {
+        $tiers = self::get_price_tiers( $post_id );
+        if ( empty( $tiers ) ) {
+            return $fallback_price;
+        }
+
+        $price = $tiers[0]['price']; // Smallest-quantity price as the base.
+        foreach ( $tiers as $tier ) {
+            if ( $qty >= $tier['qty'] ) {
+                $price = $tier['price'];
+            }
+        }
+        return $price;
+    }
+
+    /**
      * Products whose formula uses a given trade name.
      *
      * @param int $trade_id Trade name post ID.

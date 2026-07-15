@@ -112,6 +112,7 @@ class PC_Ajax_Handler {
             'natural_origin' => PC_Trade_Data::get( $post_id, 'natural_origin' ),
             'usage_min'      => PC_Trade_Data::get( $post_id, 'usage_min' ),
             'usage_max'      => PC_Trade_Data::get( $post_id, 'usage_max' ),
+            'price_tiers'    => PC_Trade_Data::get_price_tiers( $post_id ),
             'title'          => get_the_title( $post_id ),
         ) );
     }
