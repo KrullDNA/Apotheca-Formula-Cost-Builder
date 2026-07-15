@@ -172,8 +172,8 @@ box, add rows of **Quantity from (kg)** → **Price per kg**, e.g.:
 | 20 | 30 |
 
 When a batch requires (after MOQ rounding) at least a tier's quantity, that tier's
-price per kg is used for the whole purchase. So a batch needing 2.2 kg pays £50/kg,
-one needing 6 kg pays £40/kg, and one needing 25 kg pays £30/kg — and the **Batch Size
+price per kg is used for the whole purchase. So a batch needing 2.2 kg pays $50/kg,
+one needing 6 kg pays $40/kg, and one needing 25 kg pays $30/kg — and the **Batch Size
 Sweet Spot** panel now reflects real bulk pricing as you scale up. Below the smallest
 tier, the smallest tier's price applies.
 
