@@ -188,15 +188,26 @@ class PC_Trade_Data {
     }
 
     /**
-     * Get the bulk pricing tiers (quantity breaks) for a trade name.
+     * Specific gravity (density relative to water, kg/L) of a trade name.
+     * Used to convert litre-based supplier pricing to a per-kg basis.
      *
-     * Each tier: array( 'qty' => float (kg threshold), 'price' => float (per kg) ).
-     * Sorted ascending by quantity. Empty when none are defined.
+     * @param int $post_id Trade name post ID.
+     * @return float 0 when not set.
+     */
+    public static function get_specific_gravity( $post_id ) {
+        $sg = get_post_meta( $post_id, '_pc_specific_gravity', true );
+        return ( '' !== $sg && null !== $sg ) ? floatval( $sg ) : 0;
+    }
+
+    /**
+     * Raw bulk pricing tiers exactly as entered (for the editor).
+     *
+     * Each tier: array( 'qty' => float, 'price' => float, 'unit' => 'kg'|'L' ).
      *
      * @param int $post_id Trade name post ID.
      * @return array[]
      */
-    public static function get_price_tiers( $post_id ) {
+    public static function get_price_tiers_raw( $post_id ) {
         $rows = get_post_meta( $post_id, '_pc_price_tiers', true );
         if ( ! is_array( $rows ) ) {
             return array();
@@ -206,9 +217,44 @@ class PC_Trade_Data {
         foreach ( $rows as $row ) {
             $qty   = isset( $row['qty'] ) ? floatval( $row['qty'] ) : 0;
             $price = isset( $row['price'] ) ? floatval( $row['price'] ) : 0;
+            $unit  = ( isset( $row['unit'] ) && 'L' === $row['unit'] ) ? 'L' : 'kg';
             if ( $qty > 0 && $price > 0 ) {
-                $clean[] = array( 'qty' => $qty, 'price' => $price );
+                $clean[] = array( 'qty' => $qty, 'price' => $price, 'unit' => $unit );
             }
+        }
+        return $clean;
+    }
+
+    /**
+     * Bulk pricing tiers resolved to a per-kg basis for costing.
+     *
+     * Litre-priced tiers are converted using the material's specific gravity:
+     * qty(kg) = qty(L) × SG, price(per kg) = price(per L) ÷ SG. When a tier is
+     * in litres but no specific gravity is set, its values are used as-is.
+     *
+     * Each returned tier: array( 'qty' => float (kg), 'price' => float (per kg) ).
+     * Sorted ascending by quantity. Empty when none are defined.
+     *
+     * @param int $post_id Trade name post ID.
+     * @return array[]
+     */
+    public static function get_price_tiers( $post_id ) {
+        $raw = self::get_price_tiers_raw( $post_id );
+        if ( empty( $raw ) ) {
+            return array();
+        }
+
+        $sg    = self::get_specific_gravity( $post_id );
+        $clean = array();
+        foreach ( $raw as $tier ) {
+            if ( 'L' === $tier['unit'] && $sg > 0 ) {
+                $qty_kg   = $tier['qty'] * $sg;
+                $price_kg = $tier['price'] / $sg;
+            } else {
+                $qty_kg   = $tier['qty'];
+                $price_kg = $tier['price'];
+            }
+            $clean[] = array( 'qty' => $qty_kg, 'price' => $price_kg );
         }
 
         usort( $clean, function ( $a, $b ) {

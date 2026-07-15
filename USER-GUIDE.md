@@ -1,4 +1,4 @@
-# Product Costings — User Guide (v1.5.0)
+# Product Costings — User Guide (v1.6.0)
 
 A formula builder, costing calculator, and formulation-insight toolkit for cosmetic
 brands, built around two custom post types on your site:
@@ -167,19 +167,29 @@ warns live whenever this material is used outside the range.
 ### 3.3 Bulk Pricing (quantity breaks) *(new in 1.4.0)*
 
 Optional supplier price breaks for accurate scale-up costing. In the **Bulk Pricing**
-box, add rows of **Quantity from (kg)** → **Price per kg**, e.g.:
+box, add a row per price break with a **Unit** (Kg or L), a **Quantity from**, and a
+**Price per unit**, e.g.:
 
-| Quantity from (kg) | Price per kg |
-|---|---|
-| 1  | 50 |
-| 5  | 40 |
-| 20 | 30 |
+| Unit | Quantity from | Price per unit |
+|---|---|---|
+| Kg | 1  | 50 |
+| Kg | 5  | 40 |
+| Kg | 20 | 30 |
 
 When a batch requires (after MOQ rounding) at least a tier's quantity, that tier's
-price per kg is used for the whole purchase. So a batch needing 2.2 kg pays $50/kg,
-one needing 6 kg pays $40/kg, and one needing 25 kg pays $30/kg — and the **Batch Size
-Sweet Spot** panel now reflects real bulk pricing as you scale up. Below the smallest
-tier, the smallest tier's price applies.
+price is used for the whole purchase. So a batch needing 2.2 kg pays $50/kg, one
+needing 6 kg pays $40/kg, and one needing 25 kg pays $30/kg — and the **Batch Size
+Sweet Spot** panel reflects real bulk pricing as you scale up. Below the smallest tier,
+the smallest tier's price applies.
+
+**Litre / volume pricing *(new in 1.6.0)*.** Some suppliers price by the litre. Set a
+row's **Unit** to **L** and fill in the **Specific Gravity (kg/L)** field (density
+relative to water, e.g. 0.95) — it activates as soon as any row uses L. The plugin
+then converts to a per-kg basis automatically: `price/kg = price per L ÷ SG` and
+`quantity(kg) = quantity(L) × SG`. The **≈ Price / kg** column shows the converted
+figure live as you type, so you can see exactly what a litre price works out to per kg.
+(For example, $50/L at SG 0.90 = $55.56/kg, and a 5 L break becomes a 4.5 kg break.)
+Because everything resolves to kg, the rest of the costing is unaffected.
 
 Leave the table empty to use the single **Price/KG** field for all quantities (the
 default). Tiers, when present, drive every batch-cost figure (admin Cost Summary,

@@ -60,29 +60,47 @@ class PC_Trade_Name_Fields {
 
     public function render_pricing_metabox( $post ) {
         // Nonce is shared with the Formulation Data metabox (same edit form).
-        $tiers = PC_Trade_Data::get_price_tiers( $post->ID );
+        $tiers    = PC_Trade_Data::get_price_tiers_raw( $post->ID );
+        $sg       = PC_Trade_Data::get_specific_gravity( $post->ID );
+        $currency = get_option( 'pc_currency_symbol', '$' );
         ?>
         <p class="description">
-            <?php esc_html_e( 'Optional supplier price breaks. Enter the price per kg at each purchase quantity, e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price per kg is used — so scaling a batch up automatically picks up bulk pricing. Leave empty to use the single Price/KG field for all quantities.', 'product-costings' ); ?>
+            <?php esc_html_e( 'Optional supplier price breaks. For each quantity break choose the Unit (Kg or L), the quantity it starts from, and the price per that unit — e.g. 1 kg = 50, 5 kg = 40, 20 kg = 30. When a batch requires (after MOQ rounding) at least a tier\'s quantity, that tier\'s price is used, so scaling up picks up bulk pricing automatically. Leave empty to use the single Price/KG field.', 'product-costings' ); ?>
         </p>
-        <table class="widefat striped" id="pc-price-tier-table" style="max-width:420px;">
+        <p>
+            <label>
+                <strong><?php esc_html_e( 'Specific Gravity (kg/L)', 'product-costings' ); ?></strong>
+                <input type="number" step="any" min="0" id="pc-specific-gravity" name="pc_specific_gravity" value="<?php echo esc_attr( $sg ? $sg : '' ); ?>" style="width:100px;" placeholder="0.95">
+            </label>
+            <span class="description" id="pc-sg-note"><?php esc_html_e( 'Density relative to water. Required to convert litre pricing to per-kg. Becomes active when any price break uses L.', 'product-costings' ); ?></span>
+        </p>
+        <table class="widefat striped" id="pc-price-tier-table" style="max-width:620px;">
             <thead>
                 <tr>
-                    <th style="width:160px;"><?php esc_html_e( 'Quantity from (kg)', 'product-costings' ); ?></th>
-                    <th style="width:160px;"><?php esc_html_e( 'Price per kg', 'product-costings' ); ?></th>
+                    <th style="width:90px;"><?php esc_html_e( 'Unit', 'product-costings' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Quantity from', 'product-costings' ); ?></th>
+                    <th style="width:140px;"><?php esc_html_e( 'Price per unit', 'product-costings' ); ?></th>
+                    <th style="width:120px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
                     <th style="width:50px;">&nbsp;</th>
                 </tr>
             </thead>
             <tbody id="pc-price-tier-body">
                 <?php
                 if ( empty( $tiers ) ) {
-                    $tiers = array( array( 'qty' => '', 'price' => '' ) );
+                    $tiers = array( array( 'qty' => '', 'price' => '', 'unit' => 'kg' ) );
                 }
                 foreach ( $tiers as $i => $tier ) :
                     ?>
                     <tr>
-                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][qty]" value="<?php echo esc_attr( $tier['qty'] ); ?>" class="widefat" placeholder="1"></td>
-                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price]" value="<?php echo esc_attr( $tier['price'] ); ?>" class="widefat" placeholder="50.00"></td>
+                        <td>
+                            <select name="pc_price_tiers[<?php echo (int) $i; ?>][unit]" class="pc-tier-unit">
+                                <option value="kg" <?php selected( $tier['unit'], 'kg' ); ?>><?php esc_html_e( 'Kg', 'product-costings' ); ?></option>
+                                <option value="L" <?php selected( $tier['unit'], 'L' ); ?>><?php esc_html_e( 'L', 'product-costings' ); ?></option>
+                            </select>
+                        </td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][qty]" value="<?php echo esc_attr( $tier['qty'] ); ?>" class="widefat pc-tier-qty" placeholder="1"></td>
+                        <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price]" value="<?php echo esc_attr( $tier['price'] ); ?>" class="widefat pc-tier-price" placeholder="50.00"></td>
+                        <td class="pc-tier-perkg">&mdash;</td>
                         <td><button type="button" class="button pc-tier-remove">&times;</button></td>
                     </tr>
                 <?php endforeach; ?>
@@ -92,19 +110,66 @@ class PC_Trade_Name_Fields {
 
         <script>
         jQuery(function ($) {
-            $('#pc-tier-add').on('click', function () {
-                var idx = $('#pc-price-tier-body tr').length;
-                $('#pc-price-tier-body').append(
-                    '<tr>' +
-                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][qty]" class="widefat"></td>' +
-                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price]" class="widefat"></td>' +
+            var currency = <?php echo wp_json_encode( $currency ); ?>;
+
+            function rowMarkup(idx) {
+                return '<tr>' +
+                    '<td><select name="pc_price_tiers[' + idx + '][unit]" class="pc-tier-unit">' +
+                        '<option value="kg"><?php echo esc_js( __( 'Kg', 'product-costings' ) ); ?></option>' +
+                        '<option value="L"><?php echo esc_js( __( 'L', 'product-costings' ) ); ?></option>' +
+                    '</select></td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][qty]" class="widefat pc-tier-qty"></td>' +
+                    '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price]" class="widefat pc-tier-price"></td>' +
+                    '<td class="pc-tier-perkg">&mdash;</td>' +
                     '<td><button type="button" class="button pc-tier-remove">&times;</button></td>' +
-                    '</tr>'
-                );
+                    '</tr>';
+            }
+
+            function refresh() {
+                var $sg   = $('#pc-specific-gravity');
+                var sg    = parseFloat($sg.val()) || 0;
+                var anyL  = false;
+
+                $('#pc-price-tier-body tr').each(function () {
+                    var unit  = $(this).find('.pc-tier-unit').val();
+                    var price = parseFloat($(this).find('.pc-tier-price').val()) || 0;
+                    var $cell = $(this).find('.pc-tier-perkg');
+                    if (unit === 'L') { anyL = true; }
+
+                    if (price <= 0) { $cell.text('—'); return; }
+                    if (unit === 'L') {
+                        if (sg > 0) {
+                            $cell.text(currency + (price / sg).toFixed(2) + '/kg');
+                        } else {
+                            $cell.html('<em>set SG</em>');
+                        }
+                    } else {
+                        $cell.text(currency + price.toFixed(2) + '/kg');
+                    }
+                });
+
+                // Specific Gravity field only active when a litre break exists.
+                if (anyL) {
+                    $sg.prop('readonly', false).css({opacity: 1});
+                    $('#pc-sg-note').css('color', sg > 0 ? '' : '#d63638');
+                } else {
+                    $sg.prop('readonly', true).css({opacity: 0.5});
+                    $('#pc-sg-note').css('color', '');
+                }
+            }
+
+            $('#pc-tier-add').on('click', function () {
+                $('#pc-price-tier-body').append(rowMarkup($('#pc-price-tier-body tr').length));
+                refresh();
             });
             $('#pc-price-tier-table').on('click', '.pc-tier-remove', function () {
                 $(this).closest('tr').remove();
+                refresh();
             });
+            $('#pc-price-tier-table').on('input change', '.pc-tier-unit, .pc-tier-price', refresh);
+            $('#pc-specific-gravity').on('input change', refresh);
+
+            refresh();
         });
         </script>
         <?php
@@ -307,14 +372,23 @@ class PC_Trade_Name_Fields {
         foreach ( $raw_tiers as $tier ) {
             $qty   = floatval( $tier['qty'] ?? 0 );
             $price = floatval( $tier['price'] ?? 0 );
+            $unit  = ( isset( $tier['unit'] ) && 'L' === $tier['unit'] ) ? 'L' : 'kg';
             if ( $qty > 0 && $price > 0 ) {
-                $clean_tiers[] = array( 'qty' => $qty, 'price' => $price );
+                $clean_tiers[] = array( 'qty' => $qty, 'price' => $price, 'unit' => $unit );
             }
         }
         if ( empty( $clean_tiers ) ) {
             delete_post_meta( $post_id, '_pc_price_tiers' );
         } else {
             update_post_meta( $post_id, '_pc_price_tiers', $clean_tiers );
+        }
+
+        // Specific gravity (kg/L) — needed to convert litre pricing to per-kg.
+        $sg = isset( $_POST['pc_specific_gravity'] ) ? floatval( wp_unslash( $_POST['pc_specific_gravity'] ) ) : 0;
+        if ( $sg > 0 ) {
+            update_post_meta( $post_id, '_pc_specific_gravity', $sg );
+        } else {
+            delete_post_meta( $post_id, '_pc_specific_gravity' );
         }
     }
 }
