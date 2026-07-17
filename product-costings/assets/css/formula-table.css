@@ -92,9 +92,14 @@
     white-space: nowrap;
 }
 
-/* Trade name links inherit the column's text colour (Elementor controls). */
-.pc-ft .pc-ft-trade a {
-    color: inherit;
+/* Trade name links take the column's text colour (from the Elementor
+ * per-column Text Color control), overriding any theme link colour. */
+.pc-ft .pc-ft-trade a,
+.pc-ft .pc-ft-trade a:link,
+.pc-ft .pc-ft-trade a:visited,
+.pc-ft .pc-ft-trade a:hover,
+.pc-ft .pc-ft-trade a:active {
+    color: inherit !important;
     text-decoration: underline;
 }
 

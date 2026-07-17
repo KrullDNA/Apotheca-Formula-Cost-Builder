@@ -57,6 +57,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.2
+- Trade name links now take the column's Text Color (overriding any theme link colour),
+  so they match the rest of the table text.
+
 ### 1.11.1
 - Front-end Formula Ingredients Table: trade names are now links to their individual
   Trade Name pages, opening in a new tab. Links inherit the column's text colour.
