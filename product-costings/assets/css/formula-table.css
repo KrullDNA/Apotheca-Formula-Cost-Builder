@@ -92,6 +92,16 @@
     white-space: nowrap;
 }
 
+/* Trade name links inherit the column's text colour (Elementor controls). */
+.pc-ft .pc-ft-trade a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.pc-ft .pc-ft-trade a:hover {
+    text-decoration: none;
+}
+
 .pc-ft .pc-ft-kgbatch {
     text-align: center;
 }

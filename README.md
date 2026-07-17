@@ -57,6 +57,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.1
+- Front-end Formula Ingredients Table: trade names are now links to their individual
+  Trade Name pages, opening in a new tab. Links inherit the column's text colour.
+
 ### 1.11.0
 - **Formula versions are now saved on demand**, not automatically on every save. Tick
   "Save this as a new formula version" (with an optional note) in the Formula

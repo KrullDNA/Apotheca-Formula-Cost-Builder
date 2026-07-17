@@ -420,7 +420,18 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         <tr<?php echo $phase ? ' data-phase="' . esc_attr( strtoupper( $phase ) ) . '"' : ''; ?>>
                             <td class="pc-ft-phase"><?php echo esc_html( $phase ); ?></td>
                             <td class="pc-ft-ww"><?php echo $is_qs ? 'q.s.' : ( $ww > 0 ? esc_html( $ww . '%' ) : '' ); ?></td>
-                            <td class="pc-ft-trade"><?php echo esc_html( $trade_name ); ?></td>
+                            <td class="pc-ft-trade"><?php
+                            $tn_link = ( $trade_id && '' !== $trade_name ) ? get_permalink( $trade_id ) : '';
+                            if ( $tn_link ) {
+                                printf(
+                                    '<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+                                    esc_url( $tn_link ),
+                                    esc_html( $trade_name )
+                                );
+                            } else {
+                                echo esc_html( $trade_name );
+                            }
+                            ?></td>
                             <td class="pc-ft-function"><?php echo esc_html( $fn ); ?></td>
                             <td class="pc-ft-ph"><?php echo esc_html( $ph ); ?></td>
                             <td class="pc-ft-cost"><?php echo $price_num > 0 ? esc_html( $currency . number_format( $price_num, 2 ) ) : ''; ?></td>
