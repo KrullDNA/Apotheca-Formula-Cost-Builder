@@ -57,19 +57,6 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
-### 1.11.5
-- **Free-stock allowance.** Purchase costing no longer always picks the strict
-  cheapest option: when a larger purchase costs only marginally more, buying it
-  leaves usable spare stock for the next batch, so it now wins. New **Free-stock
-  allowance %** setting on the Costings Dashboard (default **5%**) defines
-  "marginally" — the largest quantity whose cost is within `cheapest × (1 +
-  allowance)` is chosen. Example: a batch needing 1.02 kg of a material sold as a
-  1 kg pack ($530), 0.1 kg pack ($85) and 0.017 L pack ($40) costs **$610**
-  strictly cheapest (1 kg + 2×0.017 L), but at 5% prefers **$615** (1 kg + 0.1 L)
-  for the extra usable stock. Set the allowance to **0** to always buy the strict
-  cheapest. Applies across the Cost/Batch column, Cost Summary, Batch
-  Requirements, Batch Sweet Spot, Batch Costings widget and Dashboard.
-
 ### 1.11.4
 - **Per-kg quantity-break costing fix.** For materials priced with per-kg
   quantity breaks, purchases now round **up to whole multiples of the MOQ

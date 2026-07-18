@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Product Costings
  * Description: Cosmetic product formula builder and costing calculator. Adds formula ingredients repeater to Products CPT, pulling data from Trade Names CPT.
- * Version: 1.11.5
+ * Version: 1.11.4
  * Author: KrullDNA
  * Text Domain: product-costings
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'PC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'PC_VERSION', '1.11.5' );
+define( 'PC_VERSION', '1.11.4' );
 
 require_once PC_PLUGIN_DIR . 'includes/class-trade-data.php';
 require_once PC_PLUGIN_DIR . 'includes/class-costing-calculator.php';
@@ -91,11 +91,10 @@ final class Product_Costings {
             wp_enqueue_script( 'pc-admin', PC_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery', 'jquery-ui-sortable', 'wp-util' ), PC_VERSION, true );
 
             wp_localize_script( 'pc-admin', 'pcData', array(
-                'ajaxUrl'            => admin_url( 'admin-ajax.php' ),
-                'nonce'             => wp_create_nonce( 'pc_nonce' ),
-                'functions'         => PC_Formula_Functions::get_functions(),
-                'currency'          => get_option( 'pc_currency_symbol', '$' ),
-                'stockAllowancePct' => floatval( get_option( 'pc_stock_allowance_pct', 5 ) ),
+                'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+                'nonce'     => wp_create_nonce( 'pc_nonce' ),
+                'functions' => PC_Formula_Functions::get_functions(),
+                'currency'  => get_option( 'pc_currency_symbol', '$' ),
             ) );
         }
     }

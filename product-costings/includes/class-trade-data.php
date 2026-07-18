@@ -342,39 +342,17 @@ class PC_Trade_Data {
     }
 
     /**
-     * The free-stock allowance as a fraction (e.g. 0.05 for 5%).
-     *
-     * When a larger purchase costs only marginally more than the strict
-     * cheapest option, buying it leaves usable spare stock for the next batch.
-     * This allowance defines "marginally": among options that cover the need,
-     * the largest quantity whose cost is within (cheapest × (1 + allowance)) is
-     * preferred. 0 means always take the strict cheapest.
-     *
-     * Set via the Costings Dashboard (option pc_stock_allowance_pct, a
-     * percentage) and filterable with 'pc_stock_allowance_pct'.
-     *
-     * @return float Allowance as a fraction (>= 0).
-     */
-    public static function get_stock_allowance() {
-        $pct = floatval( get_option( 'pc_stock_allowance_pct', 5 ) );
-        $pct = floatval( apply_filters( 'pc_stock_allowance_pct', $pct ) );
-        return max( 0, $pct ) / 100;
-    }
-
-    /**
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
-     * Evaluates two pricing styles and finds the cheapest covering purchase:
+     * Evaluates two pricing styles and picks the cheaper:
      *  - Per-kg quantity breaks: purchase in whole multiples of the MOQ
      *    increment (the smallest break), so a 1.53 kg need with a 1 kg break
      *    rounds up to 2 kg, then pay the per-kg rate the purchased quantity
      *    qualifies for. Buying up to a higher (cheaper) break is also weighed.
      *  - Packs: buy whole multiples of pack sizes, combining sizes for the
      *    cheapest covering combination.
-     *
-     * A free-stock allowance (see get_stock_allowance) then lets a larger
-     * quantity win when it costs only marginally more than the cheapest — the
-     * extra is usable spare stock. Without any tiers it is needed × base price.
+     * When two options cost the same, the greater quantity wins (free stock).
+     * Without any tiers it is simply needed × base price.
      *
      * @param int   $trade_id       Trade name post ID (0 when none selected).
      * @param float $kg_needed       Kilograms required for the batch.
@@ -399,101 +377,35 @@ class PC_Trade_Data {
             return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
         }
 
-        // Candidate purchases from each scheme (each covers the need).
-        $perkg_cands = self::perkg_candidates( $perkg, $kg_needed );
-        $pack_min    = ! empty( $packs ) ? self::cheapest_pack_combo( $packs, $kg_needed ) : null;
+        $best = null;
 
-        // Strict cheapest cost across both schemes.
-        $min_cost = null;
-        foreach ( $perkg_cands as $c ) {
-            if ( null === $min_cost || $c['cost'] < $min_cost ) {
-                $min_cost = $c['cost'];
+        // Scheme A: per-kg quantity breaks. Purchases are made in whole
+        // multiples of the MOQ increment (the smallest quantity break), so a
+        // 1.53 kg need with a 1 kg break rounds up to 2 kg. Each break is a
+        // candidate purchase level — buy at least the need, and at least that
+        // break's minimum, rounded up to the increment — then pay the per-kg
+        // rate that the purchased quantity qualifies for.
+        if ( ! empty( $perkg ) ) {
+            $increment = $perkg[0]['threshold']; // Sorted ascending: smallest = MOQ increment.
+            foreach ( $perkg as $r ) {
+                $target = max( $kg_needed, $r['threshold'] );
+                $q      = ( $increment > 0 ) ? ceil( $target / $increment - 1e-9 ) * $increment : $target;
+                $rate   = self::perkg_rate( $perkg, $q );
+                $best   = self::pick_cheaper( $best, array( 'qty' => $q, 'cost' => $q * $rate ) );
             }
         }
-        if ( $pack_min && ( null === $min_cost || $pack_min['cost'] < $min_cost ) ) {
-            $min_cost = $pack_min['cost'];
-        }
 
-        if ( null === $min_cost ) {
-            return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
-        }
-
-        // Free-stock allowance: prefer the greatest quantity whose cost is
-        // within the allowance band above the strict cheapest option.
-        $budget = $min_cost * ( 1 + self::get_stock_allowance() );
-
-        $best = null; // Chosen by: greatest quantity within budget, tie → lower cost.
-        foreach ( $perkg_cands as $c ) {
-            if ( $c['cost'] <= $budget + 1e-9 ) {
-                $best = self::pick_more_stock( $best, $c );
-            }
-        }
+        // Scheme B: cheapest combination of packs (whole multiples).
         if ( ! empty( $packs ) ) {
-            $pack_pref = self::cheapest_pack_combo( $packs, $kg_needed, $budget );
-            if ( $pack_pref ) {
-                $best = self::pick_more_stock( $best, $pack_pref );
-            }
-        }
-
-        if ( null === $best ) {
-            // Should not happen (the cheapest option is always within budget).
-            $best = $pack_min;
-            foreach ( $perkg_cands as $c ) {
-                $best = self::pick_cheaper( $best, $c );
-            }
+            $best = self::pick_cheaper( $best, self::cheapest_pack_combo( $packs, $kg_needed ) );
         }
 
         if ( null === $best ) {
             return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
         }
 
-        return array( 'qty' => $best['qty'], 'price' => 0, 'cost' => $best['cost'] );
-    }
-
-    /**
-     * Candidate per-kg-break purchases covering $need, each rounded up to a
-     * whole multiple of the MOQ increment (smallest break) and priced at the
-     * rate the purchased quantity qualifies for. One candidate per break so
-     * that buying up to a higher, cheaper break is considered.
-     *
-     * @param array $perkg Sorted array( 'threshold' => float, 'rate' => float ).
-     * @param float $need  Kilograms required.
-     * @return array<int,array{qty:float,cost:float}>
-     */
-    private static function perkg_candidates( $perkg, $need ) {
-        $out = array();
-        if ( empty( $perkg ) ) {
-            return $out;
-        }
-        $increment = $perkg[0]['threshold']; // Sorted ascending: smallest = MOQ increment.
-        foreach ( $perkg as $r ) {
-            $target = max( $need, $r['threshold'] );
-            $q      = ( $increment > 0 ) ? ceil( $target / $increment - 1e-9 ) * $increment : $target;
-            $rate   = self::perkg_rate( $perkg, $q );
-            $out[]  = array( 'qty' => $q, 'cost' => $q * $rate );
-        }
-        return $out;
-    }
-
-    /**
-     * Prefer the option with the greater quantity; on a quantity tie prefer
-     * the lower cost. Used to pick the most spare stock within the allowance
-     * budget. Either argument may be null.
-     */
-    private static function pick_more_stock( $a, $b ) {
-        if ( null === $a ) {
-            return $b;
-        }
-        if ( null === $b ) {
-            return $a;
-        }
-        if ( $b['qty'] > $a['qty'] + 1e-9 ) {
-            return $b;
-        }
-        if ( abs( $b['qty'] - $a['qty'] ) <= 1e-9 && $b['cost'] < $a['cost'] - 1e-9 ) {
-            return $b;
-        }
-        return $a;
+        $best['price'] = 0;
+        return $best;
     }
 
     /**
@@ -538,27 +450,15 @@ class PC_Trade_Data {
     /**
      * Cheapest combination of whole packs covering at least $kg_needed.
      *
-     * When $budget is null the strict cheapest covering combination is
-     * returned. When a $budget (max total cost) is given, the combination with
-     * the greatest quantity whose cost is within budget is returned instead —
-     * the extra material is usable spare stock. The coverage axis is extended
-     * by one largest pack so a "buy a bit more" option can be seen.
-     *
-     * @param array      $packs   Array of array( 'qty' => kg pack size, 'cost' => total ).
-     * @param float      $kg_needed
-     * @param float|null $budget  Optional max total cost for the free-stock pass.
+     * @param array $packs Array of array( 'qty' => kg pack size, 'cost' => total ).
      * @return array{qty:float,cost:float}|null
      */
-    private static function cheapest_pack_combo( $packs_in, $kg_needed, $budget = null ) {
+    private static function cheapest_pack_combo( $packs_in, $kg_needed ) {
         $packs = array();
-        $max_g = 0;
         foreach ( $packs_in as $tier ) {
             $grams = (int) round( $tier['qty'] * 1000 );
             if ( $grams > 0 ) {
                 $packs[] = array( 'g' => $grams, 'cost' => $tier['cost'] );
-                if ( $grams > $max_g ) {
-                    $max_g = $grams;
-                }
             }
         }
         if ( empty( $packs ) ) {
@@ -587,20 +487,16 @@ class PC_Trade_Data {
         }
         $target = (int) ceil( $need_g / $unit );
 
-        // Extend the axis by one largest pack so the free-stock pass can see a
-        // "buy a bit more" option beyond the exact need.
-        $ext = $target + (int) ceil( $max_g / $unit );
-
-        if ( $ext > 300000 ) {
+        if ( $target > 300000 ) {
             return $single;
         }
 
         // DP: minimum cost to cover at least w units; cost tie → greater quantity.
-        $dp_cost = array_fill( 0, $ext + 1, INF );
-        $dp_qty  = array_fill( 0, $ext + 1, -1 );
+        $dp_cost = array_fill( 0, $target + 1, INF );
+        $dp_qty  = array_fill( 0, $target + 1, -1 );
         $dp_cost[0] = 0.0;
         $dp_qty[0]  = 0;
-        for ( $w = 1; $w <= $ext; $w++ ) {
+        for ( $w = 1; $w <= $target; $w++ ) {
             foreach ( $packs as $p ) {
                 $u    = (int) ( $p['g'] / $unit );
                 $prev = ( $w - $u > 0 ) ? $w - $u : 0;
@@ -617,23 +513,7 @@ class PC_Trade_Data {
             }
         }
 
-        // Strict cheapest covering the need.
-        $min = array( 'qty' => $dp_qty[ $target ] / 1000, 'cost' => $dp_cost[ $target ] );
-        if ( null === $budget ) {
-            return $min;
-        }
-
-        // Free-stock pass: greatest quantity whose cost is within budget.
-        $best = $min;
-        for ( $w = $target; $w <= $ext; $w++ ) {
-            if ( INF === $dp_cost[ $w ] || $dp_qty[ $w ] < 0 ) {
-                continue;
-            }
-            if ( $dp_cost[ $w ] <= $budget + 1e-9 ) {
-                $best = self::pick_more_stock( $best, array( 'qty' => $dp_qty[ $w ] / 1000, 'cost' => $dp_cost[ $w ] ) );
-            }
-        }
-        return $best;
+        return array( 'qty' => $dp_qty[ $target ] / 1000, 'cost' => $dp_cost[ $target ] );
     }
 
     /**
