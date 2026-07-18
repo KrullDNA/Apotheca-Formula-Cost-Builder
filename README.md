@@ -57,6 +57,21 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.7
+- Bulk Pricing metabox: new **≈ Kg** column showing each row's **Qty from** converted
+  to kilograms (litres × Specific Gravity; kg rows show as-is). Updates live as you
+  type, e.g. `1 L` at SG 0.896 shows `0.896 kg`. Shows *set SG* for a litre row until a
+  Specific Gravity is entered.
+
+### 1.11.6
+- **Coverage tolerance fixes a rounding artefact in pack costing.** A purchase may
+  now fall up to 0.5% short of the exact kg needed and still count as covering it,
+  so unit-conversion / whole-gram rounding no longer forces a dearer near-exact
+  combination. Example (Squalane, litre pricing): a batch needing 2.04 kg was
+  buying 5×0.5 L = $420, when **2×1 L + 1×0.5 L** (same 2.5 L, and 1 L is cheaper
+  per litre) is **$402** — now correctly chosen. The batch's waste allowance
+  covers the sub-gram remainder. Applies to per-kg breaks and pack combinations.
+
 ### 1.11.5
 - **Free-stock allowance.** Purchase costing no longer always picks the strict
   cheapest option: when a larger purchase costs only marginally more, buying it

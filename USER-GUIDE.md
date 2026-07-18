@@ -221,6 +221,14 @@ The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg small
 pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
 exactly where scaling a batch up moves you onto cheaper packs.
 
+**Coverage tolerance *(new in 1.11.6)*.** A purchase may fall up to **0.5%** short of
+the exact kg needed and still count as covering it. This absorbs the tiny rounding that
+comes from converting litre packs to kg, so a cheaper near-exact combination isn't
+rejected over a gram or two — your batch's waste allowance covers the sub-gram
+remainder. For example, needing 2.04 kg of a litre-priced oil, `2 × 1 L + 1 × 0.5 L`
+(2.5 L, and 1 L is cheaper per litre than 0.5 L) is chosen over `5 × 0.5 L` even though
+both work out to 2.5 L — the plugin no longer forces the dearer exact-fit option.
+
 **Free-stock allowance *(new in 1.11.5)*.** The strict cheapest purchase isn't always
 the smartest one: sometimes a slightly pricier combination leaves a useful bit of spare
 stock for the next batch. The **Free-stock allowance %** setting (Costings Dashboard,
@@ -250,6 +258,11 @@ then converts the pack size to kg automatically: `quantity(kg) = quantity(L) × 
 figure live as you type, so you can see exactly what a litre price works out to per kg.
 (For example, a 5 L pack for $250 at SG 0.90 is 4.5 kg, so ≈ $55.56/kg.) Because
 everything resolves to kg, the rest of the costing is unaffected.
+
+The **≈ Kg** column (new in 1.11.7) shows each row's **Qty from** converted to
+kilograms — e.g. `1 L` at SG 0.896 shows `0.896 kg` — so you can see the actual weight
+of each pack size. Litre rows show *set SG* until a Specific Gravity is entered; kg rows
+simply echo the quantity.
 
 Rows can be **dragged to reorder** with the ☰ handle (display only — costing always
 sorts by pack size). To seed the first pack on many Trade Names at once from their

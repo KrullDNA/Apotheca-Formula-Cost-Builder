@@ -767,8 +767,13 @@
 
             var self = this;
 
-            var perkgCands = this.perkgCandidates(perkg, needed);
-            var packMin = packs.length ? this.cheapestPackCombo(packs, needed) : null;
+            // Coverage target: allow a tiny shortfall so unit-conversion / whole-
+            // gram rounding doesn't reject a cheaper near-exact purchase. Mirrors
+            // PC_Trade_Data::COVERAGE_TOLERANCE.
+            var needCov = needed * (1 - 0.005);
+
+            var perkgCands = this.perkgCandidates(perkg, needCov);
+            var packMin = packs.length ? this.cheapestPackCombo(packs, needCov) : null;
 
             var minCost = null;
             perkgCands.forEach(function (c) {
@@ -784,7 +789,7 @@
                 if (c.cost <= budget + 1e-9) { best = self.pickMoreStock(best, c); }
             });
             if (packs.length) {
-                var packPref = this.cheapestPackCombo(packs, needed, budget);
+                var packPref = this.cheapestPackCombo(packs, needCov, budget);
                 if (packPref) { best = this.pickMoreStock(best, packPref); }
             }
 
