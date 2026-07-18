@@ -57,6 +57,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.8
+- Diagnostic: logged-in admins can append `?pc_debug=1` to a page URL with the Formula
+  Ingredients Table to dump each row's pricing inputs (linked trade name + ID, whether
+  it exists, saved price/MOQ snapshot, specific gravity, effective MOQ, raw and resolved
+  price tiers, and the resulting cheapest-purchase). Used to trace a row whose cost
+  doesn't match its trade name's bulk pricing (e.g. a row linked to a duplicate/old
+  trade name). Admin-only and off unless the query flag is present.
+
 ### 1.11.7
 - Bulk Pricing metabox: new **≈ Kg** column showing each row's **Qty from** converted
   to kilograms (litres × Specific Gravity; kg rows show as-is). Updates live as you

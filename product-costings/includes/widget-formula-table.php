@@ -375,7 +375,13 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php $total_ww = 0; ?>
+                    <?php
+                    $total_ww  = 0;
+                    // Admin-only diagnostic: append ?pc_debug=1 to the URL as a
+                    // logged-in admin to dump each row's pricing inputs.
+                    $pc_debug   = ( current_user_can( 'manage_options' ) && isset( $_GET['pc_debug'] ) );
+                    $debug_rows = array();
+                    ?>
                     <?php foreach ( $rows as $row ) : ?>
                         <?php
                         $phase     = isset( $row['phase'] ) ? $row['phase'] : '';
@@ -407,6 +413,22 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         // (bulk pricing / pack combination) for the kg needed.
                         $purchase  = PC_Trade_Data::cheapest_purchase( $trade_id, $kg_batch, $price_num );
                         $line_cost = isset( $purchase['cost'] ) ? floatval( $purchase['cost'] ) : 0;
+
+                        if ( $pc_debug ) {
+                            $debug_rows[] = array(
+                                'trade_name'         => $trade_name,
+                                'trade_name_id'      => $trade_id,
+                                'post_exists'        => ( $trade_id && get_post( $trade_id ) ) ? 'yes' : 'NO',
+                                'kg_batch'           => $kg_batch,
+                                'saved_price_per_kg' => $price_num,
+                                'saved_moq'          => isset( $row['moq'] ) ? $row['moq'] : '',
+                                'specific_gravity'   => $trade_id ? PC_Trade_Data::get_specific_gravity( $trade_id ) : '',
+                                'effective_moq'      => $trade_id ? PC_Trade_Data::get_effective_moq( $trade_id ) : null,
+                                'raw_price_tiers'    => $trade_id ? get_post_meta( $trade_id, '_pc_price_tiers', true ) : null,
+                                'resolved_tiers'     => $trade_id ? PC_Trade_Data::get_price_tiers( $trade_id ) : null,
+                                'purchase_result'    => $purchase,
+                            );
+                        }
 
                         // Format MOQ with kg suffix — show the actual value
                         // (up to 6 dp), stripping trailing zeros rather than
@@ -455,6 +477,12 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
             </table>
         </div>
         <?php
+        if ( $pc_debug ) {
+            echo '<pre style="background:#111;color:#0f0;padding:16px;overflow:auto;font-size:12px;line-height:1.5;">';
+            echo esc_html( "PC DEBUG — product #{$product_id}, batch_size (with waste) = {$batch_size} kg\n\n" );
+            echo esc_html( print_r( $debug_rows, true ) );
+            echo '</pre>';
+        }
     }
 
     /**
