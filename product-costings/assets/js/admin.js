@@ -701,9 +701,58 @@
             return a;
         },
 
+        // Per-kg rate a purchase of `q` kg qualifies for: the rate of the
+        // largest break whose threshold is at or below q. `perkg` must be
+        // sorted ascending by threshold. Mirrors PC_Trade_Data::perkg_rate().
+        perkgRate: function (perkg, q) {
+            var rate = 0;
+            perkg.forEach(function (r) {
+                if ((parseFloat(r.threshold) || 0) <= q + 1e-9) {
+                    rate = parseFloat(r.rate) || 0;
+                }
+            });
+            return rate;
+        },
+
+        // Prefer the greater quantity; on a quantity tie prefer lower cost.
+        // Mirrors PC_Trade_Data::pick_more_stock().
+        pickMoreStock: function (a, b) {
+            if (!a) return b;
+            if (!b) return a;
+            if (b.qty > a.qty + 1e-9) return b;
+            if (Math.abs(b.qty - a.qty) <= 1e-9 && b.cost < a.cost - 1e-9) return b;
+            return a;
+        },
+
+        // Free-stock allowance as a fraction (e.g. 0.05 for 5%). Mirrors
+        // PC_Trade_Data::get_stock_allowance(); sourced from pcData.
+        stockAllowance: function () {
+            var pct = parseFloat(window.pcData && pcData.stockAllowancePct);
+            if (!isFinite(pct) || pct < 0) { pct = 5; }
+            return pct / 100;
+        },
+
+        // Candidate per-kg-break purchases covering `needed`, each rounded up
+        // to a whole MOQ increment. Mirrors PC_Trade_Data::perkg_candidates().
+        perkgCandidates: function (perkg, needed) {
+            var self = this, out = [];
+            if (!perkg.length) { return out; }
+            var sorted = perkg.slice().sort(function (a, b) {
+                return (parseFloat(a.threshold) || 0) - (parseFloat(b.threshold) || 0);
+            });
+            var increment = parseFloat(sorted[0].threshold) || 0;
+            sorted.forEach(function (r) {
+                var target = Math.max(needed, parseFloat(r.threshold) || 0);
+                var q = (increment > 0) ? Math.ceil(target / increment - 1e-9) * increment : target;
+                out.push({ qty: q, cost: q * self.perkgRate(sorted, q) });
+            });
+            return out;
+        },
+
         // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
-        // Evaluates per-kg quantity breaks and pack combinations and takes the
-        // cheaper (ties prefer greater quantity). Mirrors
+        // Finds the strict cheapest across per-kg breaks and pack combinations,
+        // then applies the free-stock allowance: the greatest quantity whose
+        // cost is within (cheapest × (1 + allowance)) wins. Mirrors
         // PC_Trade_Data::cheapest_purchase().
         purchaseDetail: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
@@ -717,27 +766,39 @@
             if (needed <= 0) { return { qty: 0, cost: 0 }; }
 
             var self = this;
-            var best = null;
 
-            // Scheme A: per-kg quantity breaks.
-            perkg.forEach(function (r) {
-                var q = Math.max(needed, parseFloat(r.threshold) || 0);
-                best = self.pickCheaper(best, { qty: q, cost: q * (parseFloat(r.rate) || 0) });
+            var perkgCands = this.perkgCandidates(perkg, needed);
+            var packMin = packs.length ? this.cheapestPackCombo(packs, needed) : null;
+
+            var minCost = null;
+            perkgCands.forEach(function (c) {
+                if (minCost === null || c.cost < minCost) { minCost = c.cost; }
             });
+            if (packMin && (minCost === null || packMin.cost < minCost)) { minCost = packMin.cost; }
+            if (minCost === null) { return { qty: needed, cost: needed * fb }; }
 
-            // Scheme B: cheapest pack combination.
+            var budget = minCost * (1 + this.stockAllowance());
+
+            var best = null;
+            perkgCands.forEach(function (c) {
+                if (c.cost <= budget + 1e-9) { best = self.pickMoreStock(best, c); }
+            });
             if (packs.length) {
-                best = self.pickCheaper(best, self.cheapestPackCombo(packs, needed));
+                var packPref = this.cheapestPackCombo(packs, needed, budget);
+                if (packPref) { best = this.pickMoreStock(best, packPref); }
             }
 
             return best || { qty: needed, cost: needed * fb };
         },
 
-        cheapestPackCombo: function (packsIn, needed) {
+        cheapestPackCombo: function (packsIn, needed, budget) {
+            var self = this;
+            if (typeof budget === 'undefined') { budget = null; }
             var packs = [];
+            var maxG = 0;
             packsIn.forEach(function (t) {
                 var g = Math.round((parseFloat(t.qty) || 0) * 1000);
-                if (g > 0) { packs.push({ g: g, cost: parseFloat(t.cost) || 0 }); }
+                if (g > 0) { packs.push({ g: g, cost: parseFloat(t.cost) || 0 }); if (g > maxG) { maxG = g; } }
             });
             if (!packs.length) { return null; }
 
@@ -755,12 +816,13 @@
             packs.forEach(function (p) { unit = gcd(unit, p.g); });
             if (unit < 1) { unit = 1; }
             var target = Math.ceil(needG / unit);
-            if (target > 300000) { return { qty: single.qty / 1000, cost: single.cost }; }
+            var ext = target + Math.ceil(maxG / unit);
+            if (ext > 300000) { return { qty: single.qty / 1000, cost: single.cost }; }
 
-            var dpCost = new Array(target + 1).fill(Infinity);
-            var dpQty  = new Array(target + 1).fill(-1);
+            var dpCost = new Array(ext + 1).fill(Infinity);
+            var dpQty  = new Array(ext + 1).fill(-1);
             dpCost[0] = 0; dpQty[0] = 0;
-            for (var w = 1; w <= target; w++) {
+            for (var w = 1; w <= ext; w++) {
                 for (var i = 0; i < packs.length; i++) {
                     var u = packs[i].g / unit;
                     var prev = (w - u > 0) ? w - u : 0;
@@ -772,7 +834,18 @@
                     }
                 }
             }
-            return { qty: dpQty[target] / 1000, cost: dpCost[target] };
+
+            var min = { qty: dpQty[target] / 1000, cost: dpCost[target] };
+            if (budget === null) { return min; }
+
+            var bestCombo = min;
+            for (var x = target; x <= ext; x++) {
+                if (dpCost[x] === Infinity || dpQty[x] < 0) { continue; }
+                if (dpCost[x] <= budget + 1e-9) {
+                    bestCombo = self.pickMoreStock(bestCombo, { qty: dpQty[x] / 1000, cost: dpCost[x] });
+                }
+            }
+            return bestCombo;
         },
 
         lineCost: function (tiers, needed, fallback) {
