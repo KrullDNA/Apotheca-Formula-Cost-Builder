@@ -13,6 +13,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 class PC_Trade_Data {
 
     /**
+     * Coverage tolerance for purchase costing. A purchase may fall this
+     * fraction short of the exact kg needed and still count as covering it.
+     * This absorbs litre→kg conversion / whole-gram rounding so a cheaper
+     * near-exact pack combination isn't rejected over a gram or two (e.g.
+     * 2×1 L + 1×0.5 L and 5×0.5 L are both 2.5 L, but rounding otherwise lets
+     * only the dearer one "reach" the need). The batch's waste allowance
+     * comfortably covers the tiny remainder.
+     */
+    const COVERAGE_TOLERANCE = 0.005;
+
+    /**
      * Meta key fallback map. First non-empty value wins.
      */
     private static $key_map = array(
@@ -399,9 +410,13 @@ class PC_Trade_Data {
             return array( 'qty' => 0, 'price' => 0, 'cost' => 0 );
         }
 
+        // Coverage target: allow a tiny shortfall so unit-conversion rounding
+        // doesn't reject a cheaper near-exact purchase (see COVERAGE_TOLERANCE).
+        $need_cov = $kg_needed * ( 1 - self::COVERAGE_TOLERANCE );
+
         // Candidate purchases from each scheme (each covers the need).
-        $perkg_cands = self::perkg_candidates( $perkg, $kg_needed );
-        $pack_min    = ! empty( $packs ) ? self::cheapest_pack_combo( $packs, $kg_needed ) : null;
+        $perkg_cands = self::perkg_candidates( $perkg, $need_cov );
+        $pack_min    = ! empty( $packs ) ? self::cheapest_pack_combo( $packs, $need_cov ) : null;
 
         // Strict cheapest cost across both schemes.
         $min_cost = null;
@@ -429,7 +444,7 @@ class PC_Trade_Data {
             }
         }
         if ( ! empty( $packs ) ) {
-            $pack_pref = self::cheapest_pack_combo( $packs, $kg_needed, $budget );
+            $pack_pref = self::cheapest_pack_combo( $packs, $need_cov, $budget );
             if ( $pack_pref ) {
                 $best = self::pick_more_stock( $best, $pack_pref );
             }
