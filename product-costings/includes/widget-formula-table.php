@@ -43,9 +43,9 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
             'trade'    => array( 'label' => 'Trade Name',   'class' => 'pc-ft-trade',    'default_align' => 'left'   ),
             'function' => array( 'label' => 'Function',     'class' => 'pc-ft-function', 'default_align' => 'center' ),
             'ph'       => array( 'label' => 'pH range',     'class' => 'pc-ft-ph',       'default_align' => 'center' ),
-            'cost'     => array( 'label' => 'Cost/Kg',      'class' => 'pc-ft-cost',     'default_align' => 'center' ),
             'moq'      => array( 'label' => 'MOQ',          'class' => 'pc-ft-moq',      'default_align' => 'center' ),
             'kgbatch'  => array( 'label' => 'Kg per batch', 'class' => 'pc-ft-kgbatch',  'default_align' => 'center' ),
+            'cost'     => array( 'label' => 'Cost/Batch',   'class' => 'pc-ft-cost',     'default_align' => 'center' ),
         );
     }
 
@@ -369,9 +369,9 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         <th class="pc-ft-col-trade"><?php esc_html_e( 'Trade Name', 'product-costings' ); ?></th>
                         <th class="pc-ft-col-function"><?php esc_html_e( 'Function', 'product-costings' ); ?></th>
                         <th class="pc-ft-col-ph"><?php esc_html_e( 'pH range', 'product-costings' ); ?></th>
-                        <th class="pc-ft-col-cost"><?php esc_html_e( 'Cost/Kg', 'product-costings' ); ?></th>
                         <th class="pc-ft-col-moq"><?php esc_html_e( 'MOQ', 'product-costings' ); ?></th>
                         <th class="pc-ft-col-kgbatch"><?php esc_html_e( 'Kg per batch', 'product-costings' ); ?></th>
+                        <th class="pc-ft-col-cost"><?php esc_html_e( 'Cost/Batch', 'product-costings' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -402,6 +402,11 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                         $kg_batch   = $batch_size > 0 ? ( $ww / 100 ) * $batch_size : 0;
 
                         $price_num = is_numeric( $price ) ? floatval( $price ) : 0;
+
+                        // Cost of this ingredient for the batch — cheapest purchase
+                        // (bulk pricing / pack combination) for the kg needed.
+                        $purchase  = PC_Trade_Data::cheapest_purchase( $trade_id, $kg_batch, $price_num );
+                        $line_cost = isset( $purchase['cost'] ) ? floatval( $purchase['cost'] ) : 0;
 
                         // Format MOQ with kg suffix — show the actual value
                         // (up to 6 dp), stripping trailing zeros rather than
@@ -434,9 +439,9 @@ class PC_Widget_Formula_Table extends \Elementor\Widget_Base {
                             ?></td>
                             <td class="pc-ft-function"><?php echo esc_html( $fn ); ?></td>
                             <td class="pc-ft-ph"><?php echo esc_html( $ph ); ?></td>
-                            <td class="pc-ft-cost"><?php echo $price_num > 0 ? esc_html( $currency . number_format( $price_num, 2 ) ) : ''; ?></td>
                             <td class="pc-ft-moq"><?php echo esc_html( $moq_display ); ?></td>
                             <td class="pc-ft-kgbatch"><?php echo $kg_batch > 0 ? esc_html( number_format( $kg_batch, 2 ) . ' kg' ) : ''; ?></td>
+                            <td class="pc-ft-cost"><?php echo $line_cost > 0 ? esc_html( $currency . number_format( $line_cost, 2 ) ) : ''; ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

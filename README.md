@@ -57,6 +57,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.3
+- Formula Ingredients Table widget: replaced the **Cost/Kg** column with **Cost/Batch**
+  (each ingredient's cheapest-purchase cost for its kg-per-batch) and moved it to the
+  end, after Kg per batch. Column style controls (key `cost`) carry over.
+
 ### 1.11.2
 - Trade name links now take the column's Text Color (overriding any theme link colour),
   so they match the rest of the table text.
