@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.7
+- Bulk Pricing metabox: new **≈ Kg** column showing each row's **Qty from** converted
+  to kilograms (litres × Specific Gravity; kg rows show as-is). Updates live as you
+  type, e.g. `1 L` at SG 0.896 shows `0.896 kg`. Shows *set SG* for a litre row until a
+  Specific Gravity is entered.
+
 ### 1.11.6
 - **Coverage tolerance fixes a rounding artefact in pack costing.** A purchase may
   now fall up to 0.5% short of the exact kg needed and still count as covering it,

@@ -74,7 +74,7 @@ class PC_Trade_Name_Fields {
             </label>
             <span class="description" id="pc-sg-note"><?php esc_html_e( 'Density relative to water. Required to convert litre pricing to per-kg. Becomes active when any price break uses L.', 'product-costings' ); ?></span>
         </p>
-        <table class="widefat striped" id="pc-price-tier-table" style="max-width:620px;">
+        <table class="widefat striped" id="pc-price-tier-table" style="max-width:720px;">
             <thead>
                 <tr>
                     <th style="width:24px;">&nbsp;</th>
@@ -83,6 +83,7 @@ class PC_Trade_Name_Fields {
                     <th style="width:110px;"><?php esc_html_e( 'Price / kg', 'product-costings' ); ?></th>
                     <th style="width:110px;"><?php esc_html_e( 'Pack price', 'product-costings' ); ?></th>
                     <th style="width:130px;"><?php esc_html_e( '≈ Price / kg', 'product-costings' ); ?></th>
+                    <th style="width:90px;" title="<?php esc_attr_e( 'Qty from converted to kilograms', 'product-costings' ); ?>"><?php esc_html_e( '≈ Kg', 'product-costings' ); ?></th>
                     <th style="width:40px;">&nbsp;</th>
                 </tr>
             </thead>
@@ -107,6 +108,7 @@ class PC_Trade_Name_Fields {
                         <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][price_per_kg]" value="<?php echo esc_attr( $v_perkg ); ?>" class="widefat pc-tier-perkg-input" placeholder="—"></td>
                         <td><input type="number" step="any" min="0" name="pc_price_tiers[<?php echo (int) $i; ?>][pack_price]" value="<?php echo esc_attr( $v_pack ); ?>" class="widefat pc-tier-pack-input" placeholder="—"></td>
                         <td class="pc-tier-effkg">&mdash;</td>
+                        <td class="pc-tier-effqty">&mdash;</td>
                         <td><button type="button" class="button pc-tier-remove">&times;</button></td>
                     </tr>
                 <?php endforeach; ?>
@@ -121,6 +123,11 @@ class PC_Trade_Name_Fields {
         jQuery(function ($) {
             var currency = <?php echo wp_json_encode( $currency ); ?>;
 
+            // Format a kg value: up to 6 dp, trailing zeros stripped (0.896, 0.01581).
+            function fmtKg(v) {
+                return parseFloat(v.toFixed(6)).toString();
+            }
+
             function rowMarkup(idx) {
                 return '<tr>' +
                     '<td class="pc-tier-drag" title="<?php echo esc_js( __( 'Drag to reorder', 'product-costings' ) ); ?>" style="cursor:move;text-align:center;color:#888;">&#9776;</td>' +
@@ -132,6 +139,7 @@ class PC_Trade_Name_Fields {
                     '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][price_per_kg]" class="widefat pc-tier-perkg-input" placeholder="—"></td>' +
                     '<td><input type="number" step="any" min="0" name="pc_price_tiers[' + idx + '][pack_price]" class="widefat pc-tier-pack-input" placeholder="—"></td>' +
                     '<td class="pc-tier-effkg">&mdash;</td>' +
+                    '<td class="pc-tier-effqty">&mdash;</td>' +
                     '<td><button type="button" class="button pc-tier-remove">&times;</button></td>' +
                     '</tr>';
             }
@@ -148,7 +156,20 @@ class PC_Trade_Name_Fields {
                     var perkg  = parseFloat($(this).find('.pc-tier-perkg-input').val()) || 0;
                     var pack   = parseFloat($(this).find('.pc-tier-pack-input').val()) || 0;
                     var $cell  = $(this).find('.pc-tier-effkg');
+                    var $qtyCell = $(this).find('.pc-tier-effqty');
                     if (unit === 'L') { anyL = true; }
+
+                    // ≈ Kg: the "Qty from" converted to kilograms.
+                    if (qty > 0) {
+                        if (unit === 'L') {
+                            if (sg > 0) { $qtyCell.text(fmtKg(qty * sg) + ' kg'); }
+                            else { $qtyCell.html('<em>set SG</em>'); }
+                        } else {
+                            $qtyCell.text(fmtKg(qty) + ' kg');
+                        }
+                    } else {
+                        $qtyCell.text('—');
+                    }
 
                     // Warn if both price types are filled on one row.
                     if (perkg > 0 && pack > 0) {
