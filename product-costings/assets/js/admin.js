@@ -701,6 +701,19 @@
             return a;
         },
 
+        // Per-kg rate a purchase of `q` kg qualifies for: the rate of the
+        // largest break whose threshold is at or below q. `perkg` must be
+        // sorted ascending by threshold. Mirrors PC_Trade_Data::perkg_rate().
+        perkgRate: function (perkg, q) {
+            var rate = 0;
+            perkg.forEach(function (r) {
+                if ((parseFloat(r.threshold) || 0) <= q + 1e-9) {
+                    rate = parseFloat(r.rate) || 0;
+                }
+            });
+            return rate;
+        },
+
         // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
         // Evaluates per-kg quantity breaks and pack combinations and takes the
         // cheaper (ties prefer greater quantity). Mirrors
@@ -719,11 +732,22 @@
             var self = this;
             var best = null;
 
-            // Scheme A: per-kg quantity breaks.
-            perkg.forEach(function (r) {
-                var q = Math.max(needed, parseFloat(r.threshold) || 0);
-                best = self.pickCheaper(best, { qty: q, cost: q * (parseFloat(r.rate) || 0) });
-            });
+            // Scheme A: per-kg quantity breaks. Purchases are made in whole
+            // multiples of the MOQ increment (smallest quantity break), so a
+            // 1.53 kg need with a 1 kg break rounds up to 2 kg, then pays the
+            // per-kg rate the purchased quantity qualifies for. Buying up to a
+            // higher (cheaper) break is also considered.
+            if (perkg.length) {
+                var sorted = perkg.slice().sort(function (a, b) {
+                    return (parseFloat(a.threshold) || 0) - (parseFloat(b.threshold) || 0);
+                });
+                var increment = parseFloat(sorted[0].threshold) || 0;
+                sorted.forEach(function (r) {
+                    var target = Math.max(needed, parseFloat(r.threshold) || 0);
+                    var q = (increment > 0) ? Math.ceil(target / increment - 1e-9) * increment : target;
+                    best = self.pickCheaper(best, { qty: q, cost: q * self.perkgRate(sorted, q) });
+                });
+            }
 
             // Scheme B: cheapest pack combination.
             if (packs.length) {

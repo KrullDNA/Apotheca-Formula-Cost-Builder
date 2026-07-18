@@ -345,8 +345,10 @@ class PC_Trade_Data {
      * Cheapest total cost to obtain at least $kg_needed of a material.
      *
      * Evaluates two pricing styles and picks the cheaper:
-     *  - Per-kg quantity breaks: buy the exact kg needed at the applicable rate,
-     *    or buy up to a higher break's minimum when its lower rate is cheaper.
+     *  - Per-kg quantity breaks: purchase in whole multiples of the MOQ
+     *    increment (the smallest break), so a 1.53 kg need with a 1 kg break
+     *    rounds up to 2 kg, then pay the per-kg rate the purchased quantity
+     *    qualifies for. Buying up to a higher (cheaper) break is also weighed.
      *  - Packs: buy whole multiples of pack sizes, combining sizes for the
      *    cheapest covering combination.
      * When two options cost the same, the greater quantity wins (free stock).
@@ -377,10 +379,20 @@ class PC_Trade_Data {
 
         $best = null;
 
-        // Scheme A: per-kg quantity breaks (buy exact kg, or up to a cheaper break).
-        foreach ( $perkg as $r ) {
-            $q = max( $kg_needed, $r['threshold'] );
-            $best = self::pick_cheaper( $best, array( 'qty' => $q, 'cost' => $q * $r['rate'] ) );
+        // Scheme A: per-kg quantity breaks. Purchases are made in whole
+        // multiples of the MOQ increment (the smallest quantity break), so a
+        // 1.53 kg need with a 1 kg break rounds up to 2 kg. Each break is a
+        // candidate purchase level — buy at least the need, and at least that
+        // break's minimum, rounded up to the increment — then pay the per-kg
+        // rate that the purchased quantity qualifies for.
+        if ( ! empty( $perkg ) ) {
+            $increment = $perkg[0]['threshold']; // Sorted ascending: smallest = MOQ increment.
+            foreach ( $perkg as $r ) {
+                $target = max( $kg_needed, $r['threshold'] );
+                $q      = ( $increment > 0 ) ? ceil( $target / $increment - 1e-9 ) * $increment : $target;
+                $rate   = self::perkg_rate( $perkg, $q );
+                $best   = self::pick_cheaper( $best, array( 'qty' => $q, 'cost' => $q * $rate ) );
+            }
         }
 
         // Scheme B: cheapest combination of packs (whole multiples).
@@ -394,6 +406,25 @@ class PC_Trade_Data {
 
         $best['price'] = 0;
         return $best;
+    }
+
+    /**
+     * The per-kg rate that a purchase of $q kilograms qualifies for: the rate
+     * of the largest quantity break whose threshold is at or below $q. The
+     * $perkg array must be sorted ascending by threshold.
+     *
+     * @param array $perkg Sorted array( 'threshold' => float, 'rate' => float ).
+     * @param float $q     Quantity purchased (kg).
+     * @return float Applicable per-kg rate (0 if none apply).
+     */
+    private static function perkg_rate( $perkg, $q ) {
+        $rate = 0;
+        foreach ( $perkg as $r ) {
+            if ( $r['threshold'] <= $q + 1e-9 ) {
+                $rate = $r['rate'];
+            }
+        }
+        return $rate;
     }
 
     /**

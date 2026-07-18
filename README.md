@@ -57,6 +57,18 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.4
+- **Per-kg quantity-break costing fix.** For materials priced with per-kg
+  quantity breaks, purchases now round **up to whole multiples of the MOQ
+  increment** (the smallest quantity break) before the rate is applied. A batch
+  needing 1.53 kg of a material with a 1 kg break now costs 2 kg × rate (e.g.
+  2 × $1160 = **$2320**), not 1.53 × rate. Buying up to a higher, cheaper break
+  is still weighed. Applied everywhere costs are shown — the Cost/Batch column,
+  the admin Cost Summary, Batch Requirements, Batch Sweet Spot, the Batch
+  Costings widget and the Dashboard. (Pack pricing already bought whole packs;
+  materials sold in several pack sizes still combine sizes for the cheapest,
+  least-wasteful covering purchase.)
+
 ### 1.11.3
 - Formula Ingredients Table widget: replaced the **Cost/Kg** column with **Cost/Batch**
   (each ingredient's cheapest-purchase cost for its kg-per-batch) and moved it to the

@@ -174,8 +174,9 @@ styles are supported *(dual pricing added in 1.10.0)*:
 
 **A. Per-kg quantity breaks** — a price per kg that applies from a minimum quantity
 (the common wholesale format). Enter the **Price / kg** and leave Pack price blank.
-Costing buys the **exact kg needed** at the applicable rate, buying up to a higher
-break when its lower rate is cheaper.
+Costing purchases in **whole multiples of the smallest break** (that break is the MOQ
+increment), so a fractional need is **rounded up** before the rate is applied. Buying
+up to a higher break is weighed too, when its lower rate makes the total cheaper.
 
 | Unit | Qty from | Price / kg |
 |---|---|---|
@@ -183,8 +184,16 @@ break when its lower rate is cheaper.
 | Kg | 5  | 956.92 |
 | Kg | 10 | 821.92 |
 
-> Need 3 kg → 3 × 1053.08 = **3159.24**. Need 4.8 kg → buys **5 kg** at 956.92 =
-> **4784.60** (cheaper than 4.8 × 1053.08). Need 9.5 kg → buys **10 kg** at 821.92.
+> Need 1.53 kg → rounds up to **2 kg** × 1053.08 = **2106.16** (you can't buy 1.53 kg
+> of a 1 kg-increment material). Need 4.2 kg → buys **5 kg** at 956.92 = **4784.60**
+> (cheaper than 5 kg at the 1 kg rate). Need 9.5 kg → buys **10 kg** at 821.92.
+
+> **Per-kg vs pack.** Use Price / kg only for a genuine quantity-break *rate* (the
+> price per kg falls as you buy more of the **same** material). If instead the supplier
+> sells **discrete pack/bottle sizes** — e.g. a 1 kg pack for $530 and a 0.1 kg pack
+> for $85 — enter each as a **Pack price** (see B). Packs are what let the plugin buy
+> *one of each size* and combine them for the least-wasteful covering purchase; a per-kg
+> rate would instead average the whole quantity at one rate.
 
 **B. Pack sizes** — fixed packs bought whole. Enter the **Pack price** (total for the
 pack) and leave Price / kg blank. The **≈ Price / kg** column shows `total ÷ pack
@@ -216,9 +225,10 @@ When two combinations cost **exactly the same**, the plugin buys the **larger** 
 the extra material is free usable stock for another product. (A genuinely cheaper
 option always wins; this only decides true ties.)
 
-Ingredients with **no packs defined** are simply `kg needed × Price/KG` (no MOQ
-rounding — the MOQ field no longer affects costing). Add a smallest pack if you need to
-enforce a minimum purchase for such a material.
+Ingredients with **no bulk pricing at all** (no per-kg breaks and no packs) are simply
+`kg needed × Price/KG` (no rounding — the old MOQ field no longer affects costing). Add
+a per-kg break or a smallest pack if you need to enforce a whole-increment minimum
+purchase for such a material.
 
 **Litre / volume pricing *(new in 1.6.0)*.** Some suppliers price by the litre. Set a
 row's **Unit** to **L** and fill in the **Specific Gravity (kg/L)** field (density
