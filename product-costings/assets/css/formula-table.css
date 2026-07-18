@@ -92,6 +92,21 @@
     white-space: nowrap;
 }
 
+/* Trade name links take the column's text colour (from the Elementor
+ * per-column Text Color control), overriding any theme link colour. */
+.pc-ft .pc-ft-trade a,
+.pc-ft .pc-ft-trade a:link,
+.pc-ft .pc-ft-trade a:visited,
+.pc-ft .pc-ft-trade a:hover,
+.pc-ft .pc-ft-trade a:active {
+    color: inherit !important;
+    text-decoration: underline;
+}
+
+.pc-ft .pc-ft-trade a:hover {
+    text-decoration: none;
+}
+
 .pc-ft .pc-ft-kgbatch {
     text-align: center;
 }
