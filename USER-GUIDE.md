@@ -221,9 +221,21 @@ The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg small
 pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
 exactly where scaling a batch up moves you onto cheaper packs.
 
-When two combinations cost **exactly the same**, the plugin buys the **larger** one —
-the extra material is free usable stock for another product. (A genuinely cheaper
-option always wins; this only decides true ties.)
+**Free-stock allowance *(new in 1.11.5)*.** The strict cheapest purchase isn't always
+the smartest one: sometimes a slightly pricier combination leaves a useful bit of spare
+stock for the next batch. The **Free-stock allowance %** setting (Costings Dashboard,
+default **5%**) controls this — among purchases that cover the batch, the plugin buys
+the **largest quantity whose cost is within `cheapest × (1 + allowance)`**. Set it to
+**0** to always buy the strict cheapest.
+
+> Example (packs: 1 kg $530, 0.1 kg $85, 0.017 L $40 at SG 0.93). Need **1.02 kg**. The
+> strict cheapest is 1 kg + 2 × 0.017 L = **$610** (1.032 kg). At a 5% allowance the
+> budget is $640.50, so the plugin prefers 1 kg + 0.1 L = **$615** (1.093 kg) — $5 more
+> for a bit more usable stock. At 0% it stays on the $610 option.
+
+When two combinations cost the same (or fall inside the allowance band with equal
+quantity), the plugin buys the **larger / cheaper** one — the extra material is free
+usable stock for another product.
 
 Ingredients with **no bulk pricing at all** (no per-kg breaks and no packs) are simply
 `kg needed × Price/KG` (no rounding — the old MOQ field no longer affects costing). Add
@@ -374,6 +386,9 @@ saved ingredient prices no longer match current Trade Name prices.
 - **Currency symbol** — also set at the top of this page. It's used across the admin
   Cost Summary, this dashboard, and as the default for new Elementor costing widgets
   (existing widgets keep their own per-widget symbol until you change them).
+- **Free-stock allowance %** — how much more than the strict cheapest purchase you're
+  willing to spend to leave usable spare stock (default 5%; see §3.3). Set 0 to always
+  buy the strict cheapest.
 - Workflow after a supplier price rise: refresh prices on the affected products
   (§2.2), then scan this page for red cells — those are the products that need a
   price review or reformulation.
@@ -444,6 +459,7 @@ front/back numbers.
 | Function list | `pc_formula_functions` (option) |
 | Target margin | `pc_target_margin` (option) |
 | Currency symbol | `pc_currency_symbol` (option, default `$`) |
+| Free-stock allowance % | `pc_stock_allowance_pct` (option, default `5`) |
 
 Product cost fields (`batch_size`, `labour`, `unit_size`, `cost_price`, `wholesale`,
 `rrp`, `final_ph`, `method`, …) are **read** from your existing CPT fields (plain,

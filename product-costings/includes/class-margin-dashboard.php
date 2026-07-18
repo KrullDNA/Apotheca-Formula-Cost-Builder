@@ -13,6 +13,7 @@ class PC_Margin_Dashboard {
     private static $instance = null;
 
     const TARGET_OPTION = 'pc_target_margin';
+    const STOCK_ALLOWANCE_OPTION = 'pc_stock_allowance_pct';
 
     public static function instance() {
         if ( null === self::$instance ) {
@@ -131,6 +132,11 @@ class PC_Margin_Dashboard {
         $target = isset( $_POST['pc_target_margin'] ) ? floatval( wp_unslash( $_POST['pc_target_margin'] ) ) : 50;
         update_option( self::TARGET_OPTION, max( 0, min( 100, $target ) ) );
 
+        if ( isset( $_POST['pc_stock_allowance_pct'] ) ) {
+            $allowance = floatval( wp_unslash( $_POST['pc_stock_allowance_pct'] ) );
+            update_option( self::STOCK_ALLOWANCE_OPTION, max( 0, min( 100, $allowance ) ) );
+        }
+
         if ( isset( $_POST['pc_currency_symbol'] ) ) {
             $symbol = sanitize_text_field( wp_unslash( $_POST['pc_currency_symbol'] ) );
             update_option( 'pc_currency_symbol', '' !== $symbol ? $symbol : '$' );
@@ -141,8 +147,9 @@ class PC_Margin_Dashboard {
     }
 
     public function render_page() {
-        $target   = floatval( get_option( self::TARGET_OPTION, 50 ) );
-        $currency = get_option( 'pc_currency_symbol', '$' );
+        $target    = floatval( get_option( self::TARGET_OPTION, 50 ) );
+        $currency  = get_option( 'pc_currency_symbol', '$' );
+        $allowance = floatval( get_option( self::STOCK_ALLOWANCE_OPTION, 5 ) );
 
         $products = get_posts( array(
             'post_type'      => 'products',
@@ -194,8 +201,16 @@ class PC_Margin_Dashboard {
                     <strong><?php esc_html_e( 'Currency symbol', 'product-costings' ); ?></strong>
                     <input type="text" name="pc_currency_symbol" value="<?php echo esc_attr( $currency ); ?>" maxlength="5" style="width:60px;">
                 </label>
+                &nbsp;&nbsp;
+                <label>
+                    <strong><?php esc_html_e( 'Free-stock allowance %', 'product-costings' ); ?></strong>
+                    <input type="number" name="pc_stock_allowance_pct" value="<?php echo esc_attr( $allowance ); ?>" step="0.5" min="0" max="100" style="width:70px;">
+                </label>
                 <button type="submit" class="button"><?php esc_html_e( 'Save', 'product-costings' ); ?></button>
-                <span class="description" style="margin-left:8px;"><?php esc_html_e( 'The currency symbol is used across the admin Cost Summary, this dashboard, and as the default for the Elementor widgets.', 'product-costings' ); ?></span>
+                <br>
+                <span class="description"><?php esc_html_e( 'The currency symbol is used across the admin Cost Summary, this dashboard, and as the default for the Elementor widgets.', 'product-costings' ); ?></span>
+                <br>
+                <span class="description"><?php esc_html_e( 'Free-stock allowance: when a larger purchase costs only marginally more than the strict cheapest, prefer buying it for the usable spare stock. E.g. at 5%, if covering a batch costs $610 the calculator will take a purchase up to $640.50 if it yields more material. Set 0 to always buy the strict cheapest.', 'product-costings' ); ?></span>
             </form>
 
             <?php if ( empty( $products ) ) : ?>
