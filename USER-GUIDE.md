@@ -291,7 +291,8 @@ screen, so these inputs no longer need external custom fields (JetEngine/ACF). I
 **Batch Size (kg)**, **Packaging Size (g)**, **Labour**, **Facility Running Costs**,
 **Miscellaneous Costs**, **Packaging unit cost**, **Packaging units per batch** (leave
 blank to auto-calculate from Batch Size ÷ Packaging Size), the **Cost price /
-Wholesale / RRP** multipliers, **Final pH**, and **Method**.
+Wholesale / RRP** multipliers, **Final pH**, and **Method** (a WYSIWYG rich-text editor
+— formatting, lists and links, saved as HTML and shown on the batch sheet).
 
 Values are stored under the same plain meta keys used before (`batch_size`, `labour`,
 `facility_running_costs`, `misc_costs`, `packaging_unit_cost`,

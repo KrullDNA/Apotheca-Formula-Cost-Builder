@@ -119,10 +119,19 @@ class PC_Product_Metaboxes {
                     style="width:100%;margin-top:4px;">
             </label>
         </div>
-        <label style="display:block;font-weight:600;font-size:12px;margin-top:8px;">
-            <span><?php esc_html_e( 'Method', 'product-costings' ); ?></span>
-            <textarea name="pc_cost[method]" class="pc-cost-field" data-pc-field="method" rows="4" style="width:100%;margin-top:4px;"><?php echo esc_textarea( $this->costing_field_value( $post->ID, 'method' ) ); ?></textarea>
-        </label>
+        <p style="display:block;font-weight:600;font-size:12px;margin:8px 0 4px;"><?php esc_html_e( 'Method', 'product-costings' ); ?></p>
+        <?php
+        wp_editor(
+            (string) $this->costing_field_value( $post->ID, 'method' ),
+            'pc_cost_method',
+            array(
+                'textarea_name' => 'pc_cost[method]',
+                'media_buttons' => false,
+                'teeny'         => true,
+                'textarea_rows' => 8,
+            )
+        );
+        ?>
         <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Leave “units per batch” blank to auto-calculate from Batch Size ÷ Packaging Size.', 'product-costings' ); ?></p>
         <?php
     }
@@ -174,8 +183,8 @@ class PC_Product_Metaboxes {
             }
         }
         if ( array_key_exists( 'method', $raw ) ) {
-            $v = sanitize_textarea_field( $raw['method'] );
-            if ( '' === $v ) {
+            $v = trim( wp_kses_post( $raw['method'] ) );
+            if ( '' === $v || '<p></p>' === $v ) {
                 delete_post_meta( $post_id, 'method' );
             } else {
                 update_post_meta( $post_id, 'method', $v );
