@@ -57,6 +57,16 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.16
+- **Packaging size can now be g or mL.** A unit dropdown sits next to Packaging Size.
+  For **mL** (volume) fills, units per batch account for the product's density: the
+  plugin estimates the finished-product **specific gravity** from the ingredients
+  (mass-weighted harmonic mean of each ingredient's SG; a missing SG is assumed 1.0),
+  so a lighter product yields more units — e.g. a 30 kg batch of an SG-0.963 product in
+  1 mL units gives ~1038 per kg rather than 1000. Gram fills are unchanged. The estimated
+  Product SG is shown in the Cost Summary, and applied to the Batch Size Sweet Spot,
+  Batch Costings widget and Dashboard.
+
 ### 1.11.15
 - **Fix: Costing & Pricing fields now save their own data.** The box previously wrote to
   the same plain meta keys as JetEngine/ACF (`batch_size`, …), so those plugins' save

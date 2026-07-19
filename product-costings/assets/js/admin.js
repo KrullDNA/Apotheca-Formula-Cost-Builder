@@ -153,6 +153,9 @@
                         // Bulk pricing tiers for scale-up costing.
                         $row.attr('data-price-tiers', JSON.stringify(res.data.price_tiers || []));
 
+                        // Specific gravity for the product-SG (mL packaging) calc.
+                        $row.attr('data-sg', res.data.specific_gravity || '');
+
                         // A fresh fetch is by definition not stale.
                         $row.find('.pc-stale-badge').remove();
 
@@ -574,11 +577,29 @@
         },
 
         /* ──────────────────────────────
+         * Blended product specific gravity from the ingredients — the
+         * mass-weighted harmonic mean of each ingredient's SG (missing SG is
+         * assumed 1.0). Mirrors PC_Costing_Calculator::product_specific_gravity().
+         * ────────────────────────────── */
+        productSpecificGravity: function () {
+            var wwSum = 0, volSum = 0;
+            this.$body.find('.pc-row').each(function () {
+                var ww = parseFloat($(this).find('.pc-field-ww').val()) || 0;
+                if (ww <= 0) return;
+                var sg = parseFloat($(this).attr('data-sg')) || 0;
+                if (sg <= 0) sg = 1.0;
+                wwSum  += ww;
+                volSum += ww / sg;
+            });
+            return volSum > 0 ? wwSum / volSum : 0;
+        },
+
+        /* ──────────────────────────────
          * Cost Summary Calculation
          *
-         * Uses existing Products CPT meta fields:
-         *   batch_size, labour, facility_running_costs, misc_costs,
-         *   packaging_unit_cost, packaging_units_per_batch, unit_size
+         * Uses the product's Costing & Pricing fields (batch_size, labour,
+         * facility_running_costs, misc_costs, packaging_unit_cost, unit_size,
+         * unit_size_unit).
          * ────────────────────────────── */
         recalcCostSummary: function () {
             var currency = (window.pcData && pcData.currency) ? pcData.currency : '$';
@@ -597,8 +618,8 @@
             var facilityCosts     = this.getFieldValue('facility_running_costs');
             var miscCosts         = this.getFieldValue('misc_costs');
             var packagingUnitCost = this.getFieldValue('packaging_unit_cost');
-            var unitsPerBatch     = this.getFieldValue('packaging_units_per_batch');
-            var unitSize          = this.getFieldValue('unit_size'); // packaging size in grams
+            var unitSize          = this.getFieldValue('unit_size'); // packaging size (g or mL)
+            var unitMode          = ($('[data-pc-field="unit_size_unit"]').val() || 'g').toLowerCase();
 
             // Waste allowance (matches the Batch Costings widget calculation).
             var wastePct = parseFloat($('#pc-waste-percent').val());
@@ -607,10 +628,12 @@
             }
             var batchSizeWithWaste = batchSize * (1 + wastePct / 100);
 
-            // If units_per_batch not set, calculate from batch_size and unit_size.
-            if (!unitsPerBatch && unitSize > 0 && batchSize > 0) {
-                unitsPerBatch = Math.floor((batchSize * 1000) / unitSize);
-            }
+            // Units per batch. For grams: batch mass ÷ pack size. For mL a fill
+            // is by volume, so each unit weighs size × product SG — a lighter
+            // product yields more units per kg.
+            var productSg    = this.productSpecificGravity();
+            var gramsPerUnit = ('ml' === unitMode && productSg > 0) ? unitSize * productSg : unitSize;
+            var unitsPerBatch = (gramsPerUnit > 0 && batchSize > 0) ? Math.floor((batchSize * 1000) / gramsPerUnit) : 0;
 
             // Ingredient purchase cost per batch: round each ingredient's
             // required kg up to the next MOQ multiple, matching the
@@ -635,6 +658,7 @@
 
             $('#pc-raw-cost-kg').text(rawCostPerKg > 0 ? currency + rawCostPerKg.toFixed(4) : '—');
             $('#pc-raw-cost-batch').text(batchIngredientCost > 0 ? currency + batchIngredientCost.toFixed(2) : '—');
+            $('#pc-product-sg').text(productSg > 0 ? productSg.toFixed(4) + (unitMode === 'ml' ? '' : ' (mL fills only)') : '—');
             $('#pc-units-batch').text(unitsPerBatch > 0 ? unitsPerBatch : '—');
             $('#pc-batch-cost').text(totalBatchCost > 0 ? currency + totalBatchCost.toFixed(2) : '—');
             $('#pc-cost-unit').text(costPerUnit > 0 ? currency + costPerUnit.toFixed(4) : '—');
@@ -986,6 +1010,12 @@
             var packagingUnitCost = this.getFieldValue('packaging_unit_cost');
             var rows              = this.getRowData();
 
+            // Product SG is a property of the formula, not the batch size, so
+            // compute grams-per-unit once (mL fills weigh size × product SG).
+            var unitMode     = ($('[data-pc-field="unit_size_unit"]').val() || 'g').toLowerCase();
+            var productSg    = this.productSpecificGravity();
+            var gramsPerUnit = ('ml' === unitMode && productSg > 0) ? unitSize * productSg : unitSize;
+
             var multipliers = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5];
             var results = [];
             var best = null;
@@ -993,7 +1023,7 @@
             multipliers.forEach(function (mult) {
                 var size      = batchSize * mult;
                 var sizeWaste = size * (1 + wastePct / 100);
-                var units     = Math.floor((size * 1000) / unitSize);
+                var units     = gramsPerUnit > 0 ? Math.floor((size * 1000) / gramsPerUnit) : 0;
                 if (units <= 0) return;
 
                 var ingCost = 0;
