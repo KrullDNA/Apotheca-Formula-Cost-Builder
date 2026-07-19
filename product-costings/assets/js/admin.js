@@ -1149,16 +1149,30 @@
                     win[1] = Math.min(win[1], range[1]);
                 }
             });
+            var targetPh = this.getFieldValue('final_ph');
             if (win) {
                 if (win[0] > win[1]) {
                     winValid = false;
                     warnings.push('Ingredient pH ranges do not overlap — there is no pH at which every ingredient is within its stated range.');
                 } else {
                     infos.push('Formula pH compatibility window: ' + win[0].toFixed(1) + ' – ' + win[1].toFixed(1) + '.');
-                    var targetPh = this.getFieldValue('final_ph');
                     if (targetPh > 0 && (targetPh < win[0] || targetPh > win[1])) {
                         warnings.push('Target final pH ' + targetPh + ' is outside the compatibility window ' + win[0].toFixed(1) + ' – ' + win[1].toFixed(1) + '.');
                     }
+                }
+            }
+
+            // Compatibility-window indicator next to the Final pH field.
+            var $phWin = $('#pc-ph-window');
+            if ($phWin.length) {
+                if (win && winValid) {
+                    var inRange = !(targetPh > 0 && (targetPh < win[0] || targetPh > win[1]));
+                    $phWin.text('· compatible ' + win[0].toFixed(1) + '–' + win[1].toFixed(1))
+                        .css('color', inRange ? '#2271b1' : '#d63638');
+                } else if (win && !winValid) {
+                    $phWin.text('· no overlapping pH').css('color', '#d63638');
+                } else {
+                    $phWin.text('').css('color', '');
                 }
             }
 

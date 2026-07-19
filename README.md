@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.14
+- The **Final pH** field now shows the formula's **pH compatibility window** inline next
+  to its label (e.g. “· compatible 4.5–7.0”), updating live from the ingredients' pH
+  ranges. It turns red if the entered Final pH falls outside the window (or if the
+  ingredient ranges don't overlap), so you can pick a compatible pH at a glance.
+
 ### 1.11.13
 - Costing & Pricing box laid out in grouped rows: **Batch Size + Final pH** · **Packaging
   Size + Packaging unit cost** · **Labour + Facility running cost + Miscellaneous costs** ·

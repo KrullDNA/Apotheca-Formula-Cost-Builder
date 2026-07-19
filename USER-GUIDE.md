@@ -292,6 +292,9 @@ out in grouped rows: **Batch Size (kg)** + **Final pH**; **Packaging Size (g)** 
 **Packaging unit cost**; **Labour** + **Facility running cost** + **Miscellaneous
 costs**; and the **Cost price / Wholesale / RRP** multipliers. Units per batch are
 calculated automatically (Batch Size ÷ Packaging Size), so there's no separate field.
+The **Final pH** field shows the formula's live **pH compatibility window** next to its
+label (e.g. “· compatible 4.5–7.0”, from the ingredients' pH ranges), turning red if the
+value you enter is outside it — so you can set a compatible pH at a glance.
 (The **Method** — a WYSIWYG rich-text editor, saved as HTML and shown on the batch sheet
 — lives in the **Formula Ingredients & Method** box, beneath the ingredients table.)
 

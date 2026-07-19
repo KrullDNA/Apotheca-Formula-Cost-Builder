@@ -115,7 +115,7 @@ class PC_Product_Metaboxes {
                     $is_text = ( 'final_ph' === $key );
                     ?>
                     <label style="flex:1 1 160px;display:flex;flex-direction:column;font-weight:600;font-size:12px;">
-                        <span><?php echo esc_html( $label ); ?></span>
+                        <span><?php echo esc_html( $label ); ?><?php if ( 'final_ph' === $key ) : ?> <span class="pc-ph-window" id="pc-ph-window" style="font-weight:400;"></span><?php endif; ?></span>
                         <input type="<?php echo $is_text ? 'text' : 'number'; ?>"<?php echo $is_text ? '' : ' step="any" min="0"'; ?>
                             name="pc_cost[<?php echo esc_attr( $key ); ?>]"
                             class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
