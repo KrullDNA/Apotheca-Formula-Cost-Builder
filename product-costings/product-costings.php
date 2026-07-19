@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Product Costings
  * Description: Cosmetic product formula builder and costing calculator. Adds formula ingredients repeater to Products CPT, pulling data from Trade Names CPT.
- * Version: 1.11.9
+ * Version: 1.11.10
  * Author: KrullDNA
  * Text Domain: product-costings
  */
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 define( 'PC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'PC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'PC_VERSION', '1.11.9' );
+define( 'PC_VERSION', '1.11.10' );
 
 require_once PC_PLUGIN_DIR . 'includes/class-trade-data.php';
 require_once PC_PLUGIN_DIR . 'includes/class-costing-calculator.php';

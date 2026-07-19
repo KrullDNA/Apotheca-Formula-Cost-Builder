@@ -57,6 +57,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.10
+- Removed the temporary `?pc_debug=1` diagnostic added in 1.11.8 (it did its job:
+  confirming a formula row was linked to the intended trade name). No user-facing change.
+
 ### 1.11.9
 - **New "Costing & Pricing" metabox** on the product edit screen — the plugin now owns
   the product costing inputs instead of relying on external custom fields
