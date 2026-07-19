@@ -317,7 +317,8 @@ Live calculations that update as you edit the formula or the Costing & Pricing f
 |---|---|
 | **Raw Material Cost per KG** | Σ (%w/w ÷ 100 × price/kg). The pure formula cost — what 1 kg of product costs in materials, ignoring purchasing effects. |
 | **Ingredient Cost per Batch (bulk pricing)** | What you actually pay: each ingredient's required kg (at batch size + waste %) costed by the **cheapest-total** bulk-pricing rule (§3.3) — buying up to a cheaper price break when that lowers the total. Without tiers, `kg needed × price`. |
-| **Units per Batch** | `floor(batch size × 1000 ÷ unit size)` — calculated automatically from Batch Size and Packaging Size. |
+| **Product SG (estimated)** | The finished product's specific gravity, estimated from the ingredients (mass-weighted harmonic mean of each ingredient's SG; a missing SG is assumed 1.0). Used to convert weight ↔ volume for mL fills. |
+| **Units per Batch** | Grams fill: `floor(batch size × 1000 ÷ pack size)`. mL fill: `floor(batch size × 1000 ÷ (pack size × product SG))` — a lighter product yields more units per kg. |
 | **Total Batch Cost** | Ingredients + labour + facility + misc + packaging. |
 | **Cost per Unit** | Total batch cost ÷ units. |
 

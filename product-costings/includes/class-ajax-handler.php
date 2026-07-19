@@ -117,6 +117,7 @@ class PC_Ajax_Handler {
             'usage_min'      => PC_Trade_Data::get( $post_id, 'usage_min' ),
             'usage_max'      => PC_Trade_Data::get( $post_id, 'usage_max' ),
             'price_tiers'    => PC_Trade_Data::get_price_tiers( $post_id ),
+            'specific_gravity' => PC_Trade_Data::get_specific_gravity( $post_id ),
             'title'          => get_the_title( $post_id ),
         ) );
     }

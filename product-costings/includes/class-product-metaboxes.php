@@ -123,21 +123,37 @@ class PC_Product_Metaboxes {
         <p class="description"><?php esc_html_e( 'Product costing inputs — these feed the Cost Summary below, the Batch Costings widget and the Costings Dashboard.', 'product-costings' ); ?></p>
         <?php foreach ( $groups as $group ) : ?>
             <div class="pc-costing-row" style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap;">
-                <?php foreach ( $group as $key => $label ) :
-                    $is_text = ( 'final_ph' === $key );
-                    ?>
+                <?php foreach ( $group as $key => $label ) : ?>
                     <label style="flex:1 1 160px;display:flex;flex-direction:column;font-weight:600;font-size:12px;">
                         <span><?php echo esc_html( $label ); ?><?php if ( 'final_ph' === $key ) : ?> <span class="pc-ph-window" id="pc-ph-window" style="font-weight:400;"></span><?php endif; ?></span>
-                        <input type="<?php echo $is_text ? 'text' : 'number'; ?>"<?php echo $is_text ? '' : ' step="any" min="0"'; ?>
-                            name="pc_cost[<?php echo esc_attr( $key ); ?>]"
-                            class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
-                            value="<?php echo esc_attr( $this->costing_field_value( $post->ID, $key ) ); ?>"
-                            style="width:100%;margin-top:4px;">
+                        <?php if ( 'unit_size' === $key ) :
+                            $u_mode = strtolower( (string) $this->costing_field_value( $post->ID, 'unit_size_unit' ) );
+                            $u_mode = ( 'ml' === $u_mode ) ? 'ml' : 'g';
+                            ?>
+                            <span style="display:flex;gap:6px;margin-top:4px;">
+                                <input type="number" step="any" min="0"
+                                    name="pc_cost[unit_size]" class="pc-cost-field" data-pc-field="unit_size"
+                                    value="<?php echo esc_attr( $this->costing_field_value( $post->ID, 'unit_size' ) ); ?>"
+                                    style="flex:1 1 auto;min-width:0;">
+                                <select name="pc_cost[unit_size_unit]" class="pc-cost-field" data-pc-field="unit_size_unit" style="flex:0 0 auto;">
+                                    <option value="g" <?php selected( $u_mode, 'g' ); ?>><?php esc_html_e( 'g', 'product-costings' ); ?></option>
+                                    <option value="ml" <?php selected( $u_mode, 'ml' ); ?>><?php esc_html_e( 'mL', 'product-costings' ); ?></option>
+                                </select>
+                            </span>
+                        <?php else :
+                            $is_text = ( 'final_ph' === $key );
+                            ?>
+                            <input type="<?php echo $is_text ? 'text' : 'number'; ?>"<?php echo $is_text ? '' : ' step="any" min="0"'; ?>
+                                name="pc_cost[<?php echo esc_attr( $key ); ?>]"
+                                class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
+                                value="<?php echo esc_attr( $this->costing_field_value( $post->ID, $key ) ); ?>"
+                                style="width:100%;margin-top:4px;">
+                        <?php endif; ?>
                     </label>
                 <?php endforeach; ?>
             </div>
         <?php endforeach; ?>
-        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Units per batch are calculated automatically from Batch Size ÷ Packaging Size. The Method field is in the Formula Ingredients & Method box above.', 'product-costings' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Units per batch are calculated automatically from the batch size and packaging size — for mL fills the product\'s specific gravity (estimated from the ingredients) converts weight to volume. The Method field is in the Formula Ingredients & Method box above.', 'product-costings' ); ?></p>
         <?php
     }
 
@@ -176,6 +192,11 @@ class PC_Product_Metaboxes {
             }
             $v = trim( (string) $raw[ $key ] );
             update_post_meta( $post_id, '_pc_cost_' . $key, ( '' === $v ) ? '' : floatval( $v ) );
+        }
+
+        if ( array_key_exists( 'unit_size_unit', $raw ) ) {
+            $u = ( 'ml' === strtolower( trim( (string) $raw['unit_size_unit'] ) ) ) ? 'ml' : 'g';
+            update_post_meta( $post_id, '_pc_cost_unit_size_unit', $u );
         }
 
         if ( array_key_exists( 'final_ph', $raw ) ) {
@@ -363,6 +384,7 @@ class PC_Product_Metaboxes {
         $stale     = false;
         $cur_price = '';
         $tiers     = array();
+        $row_sg    = $trade_id ? PC_Trade_Data::get_specific_gravity( $trade_id ) : 0;
         if ( $trade_id ) {
             $usage_min = PC_Trade_Data::get( $trade_id, 'usage_min' );
             $usage_max = PC_Trade_Data::get( $trade_id, 'usage_max' );
@@ -386,7 +408,7 @@ class PC_Product_Metaboxes {
             }
         }
         ?>
-        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>" data-usage-min="<?php echo esc_attr( $usage_min ); ?>" data-usage-max="<?php echo esc_attr( $usage_max ); ?>" data-price-tiers="<?php echo esc_attr( wp_json_encode( $tiers ) ); ?>">
+        <tr class="pc-row <?php echo $is_to_100 ? 'pc-row-to100' : ''; ?>" data-index="<?php echo (int) $i; ?>" data-usage-min="<?php echo esc_attr( $usage_min ); ?>" data-usage-max="<?php echo esc_attr( $usage_max ); ?>" data-price-tiers="<?php echo esc_attr( wp_json_encode( $tiers ) ); ?>" data-sg="<?php echo esc_attr( $row_sg ); ?>">
             <td class="pc-col-sort pc-drag-handle">&#9776;</td>
             <td class="pc-col-to100">
                 <input type="checkbox" name="pc_rows[<?php echo (int) $i; ?>][is_to_100]" value="1" class="pc-field-to100" <?php checked( $is_to_100 ); ?>>
@@ -466,6 +488,10 @@ class PC_Product_Metaboxes {
                 <tr>
                     <th><?php esc_html_e( 'Ingredient Cost per Batch (bulk pricing)', 'product-costings' ); ?></th>
                     <td id="pc-raw-cost-batch">&mdash;</td>
+                </tr>
+                <tr>
+                    <th><?php esc_html_e( 'Product SG (estimated)', 'product-costings' ); ?></th>
+                    <td id="pc-product-sg">&mdash;</td>
                 </tr>
                 <tr>
                     <th><?php esc_html_e( 'Units per Batch', 'product-costings' ); ?></th>

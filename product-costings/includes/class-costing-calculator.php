@@ -41,6 +41,8 @@ class PC_Costing_Calculator {
         $batch_size_raw = self::get_product_meta_value( $product_id, 'batch_size' );
         $batch_size     = $batch_size_raw * ( 1 + $waste_pct / 100 );
         $unit_size      = self::get_product_meta_value( $product_id, 'unit_size' ); // grams or ml.
+        $unit_mode      = strtolower( self::get_product_meta_text( $product_id, 'unit_size_unit' ) ); // 'g' | 'ml'.
+        $product_sg     = self::product_specific_gravity( $rows );
         $labour         = self::get_product_meta_value( $product_id, 'labour' );
         $facility       = self::get_product_meta_value( $product_id, 'facility_running_costs' );
         $misc           = self::get_product_meta_value( $product_id, 'misc_costs' );
@@ -50,9 +52,11 @@ class PC_Costing_Calculator {
         $rrp_mul        = self::get_product_meta_value( $product_id, 'rrp' );
 
         // ── Total Packaging Units ──
-        // Derived from base batch size (without waste) ÷ unit size (grams/ml → kg).
-        $pkg_volume_kg         = $unit_size > 0 ? $unit_size / 1000 : 0;
-        $total_packaging_units = $pkg_volume_kg > 0 ? floor( $batch_size_raw / $pkg_volume_kg ) : 0;
+        // Uses the base batch size (without waste). Grams-per-unit is the pack
+        // size for gram fills, or size × product SG for mL fills (a volume fill's
+        // mass depends on the product's density).
+        $grams_per_unit        = ( 'ml' === $unit_mode && $product_sg > 0 ) ? $unit_size * $product_sg : $unit_size;
+        $total_packaging_units = $grams_per_unit > 0 ? floor( ( $batch_size_raw * 1000 ) / $grams_per_unit ) : 0;
 
         // ── Batch Cost ──
         // Bulk pricing tiers drive purchasing: for each ingredient, buy the
@@ -115,7 +119,38 @@ class PC_Costing_Calculator {
             'batch_size'                 => $batch_size_raw,
             'batch_size_with_waste'      => $batch_size,
             'natural_origin'             => $natural_origin,
+            'product_sg'                 => $product_sg,
         );
+    }
+
+    /**
+     * Blended specific gravity of the finished product, estimated from the
+     * ingredients: the mass-weighted harmonic mean of each ingredient's SG
+     * (volumes add), with a missing ingredient SG assumed to be 1.0.
+     *
+     * @param array $rows Formula rows.
+     * @return float 0 when it can't be determined.
+     */
+    public static function product_specific_gravity( $rows ) {
+        if ( ! is_array( $rows ) ) {
+            return 0;
+        }
+        $ww_sum  = 0;
+        $vol_sum = 0;
+        foreach ( $rows as $row ) {
+            $ww = isset( $row['percent_w_w'] ) ? floatval( $row['percent_w_w'] ) : 0;
+            if ( $ww <= 0 ) {
+                continue;
+            }
+            $trade_id = isset( $row['trade_name_id'] ) ? absint( $row['trade_name_id'] ) : 0;
+            $sg       = $trade_id ? PC_Trade_Data::get_specific_gravity( $trade_id ) : 0;
+            if ( $sg <= 0 ) {
+                $sg = 1.0; // Assume water-like when unknown.
+            }
+            $ww_sum  += $ww;
+            $vol_sum += $ww / $sg;
+        }
+        return $vol_sum > 0 ? $ww_sum / $vol_sum : 0;
     }
 
     /**
