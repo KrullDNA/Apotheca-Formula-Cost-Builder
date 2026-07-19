@@ -69,11 +69,23 @@ class PC_Product_Metaboxes {
      * ─────────────────────────────────────────────── */
 
     /**
-     * Current value of a costing field: the plain meta key (as used by the
-     * calculator and by legacy custom-field plugins), falling back to ACF.
+     * Current value of a costing field for the editor.
+     *
+     * Prefers the plugin's own meta (`_pc_cost_<key>`) once it has been saved
+     * (even if empty), so the box is independent of JetEngine/ACF. Before then
+     * it shows the legacy plain / underscore key, then ACF, so an existing value
+     * pre-populates the field for migration.
      */
     private function costing_field_value( $post_id, $key ) {
+        $pc_key = '_pc_cost_' . $key;
+        if ( metadata_exists( 'post', $post_id, $pc_key ) ) {
+            return get_post_meta( $post_id, $pc_key, true );
+        }
+
         $val = get_post_meta( $post_id, $key, true );
+        if ( '' === $val || null === $val ) {
+            $val = get_post_meta( $post_id, '_' . $key, true );
+        }
         if ( ( '' === $val || null === $val ) && function_exists( 'get_field' ) ) {
             $f = get_field( $key, $post_id );
             if ( null !== $f && false !== $f ) {
@@ -151,6 +163,9 @@ class PC_Product_Metaboxes {
 
         $raw = ( isset( $_POST['pc_cost'] ) && is_array( $_POST['pc_cost'] ) ) ? wp_unslash( $_POST['pc_cost'] ) : array();
 
+        // The plugin owns dedicated `_pc_cost_<key>` meta so it is independent of
+        // JetEngine/ACF (which write the plain keys). We store even empty values
+        // so a cleared field stays cleared instead of falling back to legacy data.
         $num_keys = array(
             'batch_size', 'unit_size', 'labour', 'facility_running_costs', 'misc_costs',
             'packaging_unit_cost', 'cost_price', 'wholesale', 'rrp',
@@ -160,28 +175,18 @@ class PC_Product_Metaboxes {
                 continue;
             }
             $v = trim( (string) $raw[ $key ] );
-            if ( '' === $v ) {
-                delete_post_meta( $post_id, $key );
-            } else {
-                update_post_meta( $post_id, $key, floatval( $v ) );
-            }
+            update_post_meta( $post_id, '_pc_cost_' . $key, ( '' === $v ) ? '' : floatval( $v ) );
         }
 
         if ( array_key_exists( 'final_ph', $raw ) ) {
-            $v = sanitize_text_field( $raw['final_ph'] );
-            if ( '' === $v ) {
-                delete_post_meta( $post_id, 'final_ph' );
-            } else {
-                update_post_meta( $post_id, 'final_ph', $v );
-            }
+            update_post_meta( $post_id, '_pc_cost_final_ph', sanitize_text_field( $raw['final_ph'] ) );
         }
         if ( array_key_exists( 'method', $raw ) ) {
             $v = trim( wp_kses_post( $raw['method'] ) );
-            if ( '' === $v || '<p></p>' === $v ) {
-                delete_post_meta( $post_id, 'method' );
-            } else {
-                update_post_meta( $post_id, 'method', $v );
+            if ( '<p></p>' === $v ) {
+                $v = '';
             }
+            update_post_meta( $post_id, '_pc_cost_method', $v );
         }
     }
 
