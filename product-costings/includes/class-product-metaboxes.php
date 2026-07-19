@@ -38,7 +38,7 @@ class PC_Product_Metaboxes {
     public function register_metaboxes() {
         add_meta_box(
             'pc_formula_ingredients',
-            __( 'Formula Ingredients', 'product-costings' ),
+            __( 'Formula Ingredients & Method', 'product-costings' ),
             array( $this, 'render_formula_metabox' ),
             'products',
             'normal',
@@ -86,44 +86,46 @@ class PC_Product_Metaboxes {
     public function render_costing_metabox( $post ) {
         wp_nonce_field( 'pc_save_costing', 'pc_costing_nonce' );
 
-        $num_fields = array(
-            'batch_size'                => __( 'Batch Size (kg)', 'product-costings' ),
-            'unit_size'                 => __( 'Packaging Size (g)', 'product-costings' ),
-            'labour'                    => __( 'Labour (manufacture & filling)', 'product-costings' ),
-            'facility_running_costs'    => __( 'Facility Running Costs', 'product-costings' ),
-            'misc_costs'                => __( 'Miscellaneous Costs', 'product-costings' ),
-            'packaging_unit_cost'       => __( 'Packaging unit cost', 'product-costings' ),
-            'packaging_units_per_batch' => __( 'Packaging units per batch (optional override)', 'product-costings' ),
-            'cost_price'                => __( 'Cost price multiplier (× manufacture)', 'product-costings' ),
-            'wholesale'                 => __( 'Wholesale multiplier (× manufacture)', 'product-costings' ),
-            'rrp'                       => __( 'RRP multiplier (× manufacture)', 'product-costings' ),
+        // Grouped rows. Each entry is key => label; 'final_ph' renders as text.
+        $groups = array(
+            array(
+                'batch_size' => __( 'Batch Size (kg)', 'product-costings' ),
+                'final_ph'   => __( 'Final pH', 'product-costings' ),
+            ),
+            array(
+                'unit_size'           => __( 'Packaging Size (g)', 'product-costings' ),
+                'packaging_unit_cost' => __( 'Packaging unit cost', 'product-costings' ),
+            ),
+            array(
+                'labour'                 => __( 'Labour cost', 'product-costings' ),
+                'facility_running_costs' => __( 'Facility running cost', 'product-costings' ),
+                'misc_costs'             => __( 'Miscellaneous costs', 'product-costings' ),
+            ),
+            array(
+                'cost_price' => __( 'Cost price multiplier', 'product-costings' ),
+                'wholesale'  => __( 'Wholesale price multiplier', 'product-costings' ),
+                'rrp'        => __( 'RRP multiplier', 'product-costings' ),
+            ),
         );
         ?>
         <p class="description"><?php esc_html_e( 'Product costing inputs — these feed the Cost Summary below, the Batch Costings widget and the Costings Dashboard.', 'product-costings' ); ?></p>
-        <div class="pc-costing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 20px;margin:12px 0;">
-            <?php foreach ( $num_fields as $key => $label ) : ?>
-                <label style="display:flex;flex-direction:column;font-weight:600;font-size:12px;">
-                    <span><?php echo esc_html( $label ); ?></span>
-                    <input type="number" step="any" min="0"
-                        name="pc_cost[<?php echo esc_attr( $key ); ?>]"
-                        class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
-                        value="<?php echo esc_attr( $this->costing_field_value( $post->ID, $key ) ); ?>"
-                        style="width:100%;margin-top:4px;">
-                </label>
-            <?php endforeach; ?>
-            <label style="display:flex;flex-direction:column;font-weight:600;font-size:12px;">
-                <span><?php esc_html_e( 'Final pH', 'product-costings' ); ?></span>
-                <input type="text"
-                    name="pc_cost[final_ph]" class="pc-cost-field" data-pc-field="final_ph"
-                    value="<?php echo esc_attr( $this->costing_field_value( $post->ID, 'final_ph' ) ); ?>"
-                    style="width:100%;margin-top:4px;">
-            </label>
-        </div>
-        <label style="display:block;font-weight:600;font-size:12px;margin-top:8px;">
-            <span><?php esc_html_e( 'Method', 'product-costings' ); ?></span>
-            <textarea name="pc_cost[method]" class="pc-cost-field" data-pc-field="method" rows="4" style="width:100%;margin-top:4px;"><?php echo esc_textarea( $this->costing_field_value( $post->ID, 'method' ) ); ?></textarea>
-        </label>
-        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Leave “units per batch” blank to auto-calculate from Batch Size ÷ Packaging Size.', 'product-costings' ); ?></p>
+        <?php foreach ( $groups as $group ) : ?>
+            <div class="pc-costing-row" style="display:flex;gap:16px;margin:0 0 12px;flex-wrap:wrap;">
+                <?php foreach ( $group as $key => $label ) :
+                    $is_text = ( 'final_ph' === $key );
+                    ?>
+                    <label style="flex:1 1 160px;display:flex;flex-direction:column;font-weight:600;font-size:12px;">
+                        <span><?php echo esc_html( $label ); ?></span>
+                        <input type="<?php echo $is_text ? 'text' : 'number'; ?>"<?php echo $is_text ? '' : ' step="any" min="0"'; ?>
+                            name="pc_cost[<?php echo esc_attr( $key ); ?>]"
+                            class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
+                            value="<?php echo esc_attr( $this->costing_field_value( $post->ID, $key ) ); ?>"
+                            style="width:100%;margin-top:4px;">
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
+        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Units per batch are calculated automatically from Batch Size ÷ Packaging Size. The Method field is in the Formula Ingredients & Method box above.', 'product-costings' ); ?></p>
         <?php
     }
 
@@ -151,7 +153,7 @@ class PC_Product_Metaboxes {
 
         $num_keys = array(
             'batch_size', 'unit_size', 'labour', 'facility_running_costs', 'misc_costs',
-            'packaging_unit_cost', 'packaging_units_per_batch', 'cost_price', 'wholesale', 'rrp',
+            'packaging_unit_cost', 'cost_price', 'wholesale', 'rrp',
         );
         foreach ( $num_keys as $key ) {
             if ( ! array_key_exists( $key, $raw ) ) {
@@ -174,8 +176,8 @@ class PC_Product_Metaboxes {
             }
         }
         if ( array_key_exists( 'method', $raw ) ) {
-            $v = sanitize_textarea_field( $raw['method'] );
-            if ( '' === $v ) {
+            $v = trim( wp_kses_post( $raw['method'] ) );
+            if ( '' === $v || '<p></p>' === $v ) {
                 delete_post_meta( $post_id, 'method' );
             } else {
                 update_post_meta( $post_id, 'method', $v );
@@ -268,6 +270,23 @@ class PC_Product_Metaboxes {
                 <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:55%;">
                 <span class="description"><?php esc_html_e( 'Optional label, saved with the version when you tick the box above.', 'product-costings' ); ?></span>
             </p>
+        </div>
+
+        <div class="pc-method-wrap" style="margin-top:18px;border-top:1px solid #e0e0e0;padding-top:14px;">
+            <h3 style="margin:0 0 6px;"><?php esc_html_e( 'Method', 'product-costings' ); ?></h3>
+            <p class="description" style="margin-top:0;"><?php esc_html_e( 'Manufacturing method / batch instructions. Rich text — shown on the printable batch sheet.', 'product-costings' ); ?></p>
+            <?php
+            wp_editor(
+                (string) $this->costing_field_value( $post->ID, 'method' ),
+                'pc_cost_method',
+                array(
+                    'textarea_name' => 'pc_cost[method]',
+                    'media_buttons' => false,
+                    'teeny'         => true,
+                    'textarea_rows' => 10,
+                )
+            );
+            ?>
         </div>
 
         <!-- Row template (hidden) -->

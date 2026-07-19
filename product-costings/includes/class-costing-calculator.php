@@ -45,18 +45,14 @@ class PC_Costing_Calculator {
         $facility       = self::get_product_meta_value( $product_id, 'facility_running_costs' );
         $misc           = self::get_product_meta_value( $product_id, 'misc_costs' );
         $pkg_unit_cost  = self::get_product_meta_value( $product_id, 'packaging_unit_cost' );
-        $units_override = self::get_product_meta_value( $product_id, 'packaging_units_per_batch' );
         $cost_price_mul = self::get_product_meta_value( $product_id, 'cost_price' );
         $wholesale_mul  = self::get_product_meta_value( $product_id, 'wholesale' );
         $rrp_mul        = self::get_product_meta_value( $product_id, 'rrp' );
 
         // ── Total Packaging Units ──
-        // An explicit packaging_units_per_batch overrides the calculation;
-        // otherwise derive from base batch size (without waste) ÷ unit size
-        // (grams/ml → kg).
+        // Derived from base batch size (without waste) ÷ unit size (grams/ml → kg).
         $pkg_volume_kg         = $unit_size > 0 ? $unit_size / 1000 : 0;
-        $computed_units        = $pkg_volume_kg > 0 ? floor( $batch_size_raw / $pkg_volume_kg ) : 0;
-        $total_packaging_units = $units_override > 0 ? $units_override : $computed_units;
+        $total_packaging_units = $pkg_volume_kg > 0 ? floor( $batch_size_raw / $pkg_volume_kg ) : 0;
 
         // ── Batch Cost ──
         // Bulk pricing tiers drive purchasing: for each ingredient, buy the

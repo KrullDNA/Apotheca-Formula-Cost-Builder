@@ -57,6 +57,25 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.13
+- Costing & Pricing box laid out in grouped rows: **Batch Size + Final pH** · **Packaging
+  Size + Packaging unit cost** · **Labour + Facility running cost + Miscellaneous costs** ·
+  **Cost price / Wholesale / RRP multipliers**.
+- Removed the **Packaging units per batch** field — units per batch are always calculated
+  automatically from Batch Size ÷ Packaging Size (the calculator no longer treats a stored
+  value as an override).
+
+### 1.11.12
+- Moved the **Method** WYSIWYG editor into the **Formula Ingredients** box (renamed
+  **Formula Ingredients & Method**), shown beneath the ingredients table. Same `method`
+  meta key and save behaviour — no data change.
+
+### 1.11.11
+- The **Method** field in the Costing & Pricing box is now a **WYSIWYG editor**
+  (formatting, lists, links). Content is saved as sanitised HTML under the same
+  `method` meta key and rendered on the batch sheet, so existing plain-text methods
+  carry over unchanged.
+
 ### 1.11.10
 - Removed the temporary `?pc_debug=1` diagnostic added in 1.11.8 (it did its job:
   confirming a formula row was linked to the intended trade name). No user-facing change.

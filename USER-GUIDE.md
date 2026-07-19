@@ -287,15 +287,17 @@ kg is your negotiating position on annual volume.
 ### Costing & Pricing box *(new in 1.11.9)*
 
 The plugin now provides its own **Costing & Pricing** metabox on the product edit
-screen, so these inputs no longer need external custom fields (JetEngine/ACF). It holds:
-**Batch Size (kg)**, **Packaging Size (g)**, **Labour**, **Facility Running Costs**,
-**Miscellaneous Costs**, **Packaging unit cost**, **Packaging units per batch** (leave
-blank to auto-calculate from Batch Size ÷ Packaging Size), the **Cost price /
-Wholesale / RRP** multipliers, **Final pH**, and **Method**.
+screen, so these inputs no longer need external custom fields (JetEngine/ACF). It is laid
+out in grouped rows: **Batch Size (kg)** + **Final pH**; **Packaging Size (g)** +
+**Packaging unit cost**; **Labour** + **Facility running cost** + **Miscellaneous
+costs**; and the **Cost price / Wholesale / RRP** multipliers. Units per batch are
+calculated automatically (Batch Size ÷ Packaging Size), so there's no separate field.
+(The **Method** — a WYSIWYG rich-text editor, saved as HTML and shown on the batch sheet
+— lives in the **Formula Ingredients & Method** box, beneath the ingredients table.)
 
 Values are stored under the same plain meta keys used before (`batch_size`, `labour`,
 `facility_running_costs`, `misc_costs`, `packaging_unit_cost`,
-`packaging_units_per_batch`, `unit_size`, `cost_price`, `wholesale`, `rrp`, `final_ph`,
+`unit_size`, `cost_price`, `wholesale`, `rrp`, `final_ph`,
 `method`), so any existing data is picked up automatically. **Migrating from
 JetEngine/ACF:** these fields already show your current values — just delete the old
 external field group; the stored values remain and the plugin box takes over. (Its save
@@ -311,7 +313,7 @@ Live calculations that update as you edit the formula or the Costing & Pricing f
 |---|---|
 | **Raw Material Cost per KG** | Σ (%w/w ÷ 100 × price/kg). The pure formula cost — what 1 kg of product costs in materials, ignoring purchasing effects. |
 | **Ingredient Cost per Batch (bulk pricing)** | What you actually pay: each ingredient's required kg (at batch size + waste %) costed by the **cheapest-total** bulk-pricing rule (§3.3) — buying up to a cheaper price break when that lowers the total. Without tiers, `kg needed × price`. |
-| **Units per Batch** | From `packaging_units_per_batch`, or `floor(batch size × 1000 ÷ unit size)`. |
+| **Units per Batch** | `floor(batch size × 1000 ÷ unit size)` — calculated automatically from Batch Size and Packaging Size. |
 | **Total Batch Cost** | Ingredients + labour + facility + misc + packaging. |
 | **Cost per Unit** | Total batch cost ÷ units. |
 
