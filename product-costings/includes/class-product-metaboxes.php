@@ -38,7 +38,7 @@ class PC_Product_Metaboxes {
     public function register_metaboxes() {
         add_meta_box(
             'pc_formula_ingredients',
-            __( 'Formula Ingredients', 'product-costings' ),
+            __( 'Formula Ingredients & Method', 'product-costings' ),
             array( $this, 'render_formula_metabox' ),
             'products',
             'normal',
@@ -119,20 +119,7 @@ class PC_Product_Metaboxes {
                     style="width:100%;margin-top:4px;">
             </label>
         </div>
-        <p style="display:block;font-weight:600;font-size:12px;margin:8px 0 4px;"><?php esc_html_e( 'Method', 'product-costings' ); ?></p>
-        <?php
-        wp_editor(
-            (string) $this->costing_field_value( $post->ID, 'method' ),
-            'pc_cost_method',
-            array(
-                'textarea_name' => 'pc_cost[method]',
-                'media_buttons' => false,
-                'teeny'         => true,
-                'textarea_rows' => 8,
-            )
-        );
-        ?>
-        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Leave “units per batch” blank to auto-calculate from Batch Size ÷ Packaging Size.', 'product-costings' ); ?></p>
+        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Leave “units per batch” blank to auto-calculate from Batch Size ÷ Packaging Size. The Method field is in the Formula Ingredients & Method box above.', 'product-costings' ); ?></p>
         <?php
     }
 
@@ -277,6 +264,23 @@ class PC_Product_Metaboxes {
                 <input type="text" id="pc-version-note" name="pc_version_note" class="regular-text" placeholder="<?php esc_attr_e( 'e.g. Increased glycerin to 3%, swapped preservative', 'product-costings' ); ?>" style="width:55%;">
                 <span class="description"><?php esc_html_e( 'Optional label, saved with the version when you tick the box above.', 'product-costings' ); ?></span>
             </p>
+        </div>
+
+        <div class="pc-method-wrap" style="margin-top:18px;border-top:1px solid #e0e0e0;padding-top:14px;">
+            <h3 style="margin:0 0 6px;"><?php esc_html_e( 'Method', 'product-costings' ); ?></h3>
+            <p class="description" style="margin-top:0;"><?php esc_html_e( 'Manufacturing method / batch instructions. Rich text — shown on the printable batch sheet.', 'product-costings' ); ?></p>
+            <?php
+            wp_editor(
+                (string) $this->costing_field_value( $post->ID, 'method' ),
+                'pc_cost_method',
+                array(
+                    'textarea_name' => 'pc_cost[method]',
+                    'media_buttons' => false,
+                    'teeny'         => true,
+                    'textarea_rows' => 10,
+                )
+            );
+            ?>
         </div>
 
         <!-- Row template (hidden) -->

@@ -57,6 +57,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.12
+- Moved the **Method** WYSIWYG editor into the **Formula Ingredients** box (renamed
+  **Formula Ingredients & Method**), shown beneath the ingredients table. Same `method`
+  meta key and save behaviour — no data change.
+
 ### 1.11.11
 - The **Method** field in the Costing & Pricing box is now a **WYSIWYG editor**
   (formatting, lists, links). Content is saved as sanitised HTML under the same
