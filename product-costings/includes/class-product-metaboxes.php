@@ -2,9 +2,12 @@
 /**
  * Registers and renders metaboxes on the Products CPT edit screen.
  * - Formula Ingredients repeater
- * - Cost Summary (reads existing CPT meta fields for calculations)
+ * - Costing & Pricing inputs (batch size, packaging, overheads, multipliers,
+ *   pH, method) — stored under the plain meta keys below so the calculator
+ *   and any legacy data keep working.
+ * - Cost Summary (calculated from the formula + the fields above)
  *
- * Existing Products CPT meta fields (NOT managed by this plugin):
+ * Product costing meta keys managed here:
  *   batch_size, labour, facility_running_costs, misc_costs,
  *   packaging_unit_cost, packaging_units_per_batch, unit_size,
  *   final_ph, cost_price, wholesale, rrp, method
@@ -28,6 +31,8 @@ class PC_Product_Metaboxes {
     private function __construct() {
         add_action( 'add_meta_boxes', array( $this, 'register_metaboxes' ) );
         add_action( 'save_post_products', array( $this, 'save_meta' ), 10, 2 );
+        // Priority 99 so it saves after (and wins over) any legacy field plugin.
+        add_action( 'save_post_products', array( $this, 'save_costing_meta' ), 99, 2 );
     }
 
     public function register_metaboxes() {
@@ -41,6 +46,15 @@ class PC_Product_Metaboxes {
         );
 
         add_meta_box(
+            'pc_costing_inputs',
+            __( 'Costing & Pricing', 'product-costings' ),
+            array( $this, 'render_costing_metabox' ),
+            'products',
+            'normal',
+            'high'
+        );
+
+        add_meta_box(
             'pc_cost_summary',
             __( 'Cost Summary', 'product-costings' ),
             array( $this, 'render_cost_summary_metabox' ),
@@ -48,6 +62,125 @@ class PC_Product_Metaboxes {
             'normal',
             'default'
         );
+    }
+
+    /* ───────────────────────────────────────────────
+     * Costing & Pricing inputs
+     * ─────────────────────────────────────────────── */
+
+    /**
+     * Current value of a costing field: the plain meta key (as used by the
+     * calculator and by legacy custom-field plugins), falling back to ACF.
+     */
+    private function costing_field_value( $post_id, $key ) {
+        $val = get_post_meta( $post_id, $key, true );
+        if ( ( '' === $val || null === $val ) && function_exists( 'get_field' ) ) {
+            $f = get_field( $key, $post_id );
+            if ( null !== $f && false !== $f ) {
+                $val = $f;
+            }
+        }
+        return $val;
+    }
+
+    public function render_costing_metabox( $post ) {
+        wp_nonce_field( 'pc_save_costing', 'pc_costing_nonce' );
+
+        $num_fields = array(
+            'batch_size'                => __( 'Batch Size (kg)', 'product-costings' ),
+            'unit_size'                 => __( 'Packaging Size (g)', 'product-costings' ),
+            'labour'                    => __( 'Labour (manufacture & filling)', 'product-costings' ),
+            'facility_running_costs'    => __( 'Facility Running Costs', 'product-costings' ),
+            'misc_costs'                => __( 'Miscellaneous Costs', 'product-costings' ),
+            'packaging_unit_cost'       => __( 'Packaging unit cost', 'product-costings' ),
+            'packaging_units_per_batch' => __( 'Packaging units per batch (optional override)', 'product-costings' ),
+            'cost_price'                => __( 'Cost price multiplier (× manufacture)', 'product-costings' ),
+            'wholesale'                 => __( 'Wholesale multiplier (× manufacture)', 'product-costings' ),
+            'rrp'                       => __( 'RRP multiplier (× manufacture)', 'product-costings' ),
+        );
+        ?>
+        <p class="description"><?php esc_html_e( 'Product costing inputs — these feed the Cost Summary below, the Batch Costings widget and the Costings Dashboard.', 'product-costings' ); ?></p>
+        <div class="pc-costing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 20px;margin:12px 0;">
+            <?php foreach ( $num_fields as $key => $label ) : ?>
+                <label style="display:flex;flex-direction:column;font-weight:600;font-size:12px;">
+                    <span><?php echo esc_html( $label ); ?></span>
+                    <input type="number" step="any" min="0"
+                        name="pc_cost[<?php echo esc_attr( $key ); ?>]"
+                        class="pc-cost-field" data-pc-field="<?php echo esc_attr( $key ); ?>"
+                        value="<?php echo esc_attr( $this->costing_field_value( $post->ID, $key ) ); ?>"
+                        style="width:100%;margin-top:4px;">
+                </label>
+            <?php endforeach; ?>
+            <label style="display:flex;flex-direction:column;font-weight:600;font-size:12px;">
+                <span><?php esc_html_e( 'Final pH', 'product-costings' ); ?></span>
+                <input type="text"
+                    name="pc_cost[final_ph]" class="pc-cost-field" data-pc-field="final_ph"
+                    value="<?php echo esc_attr( $this->costing_field_value( $post->ID, 'final_ph' ) ); ?>"
+                    style="width:100%;margin-top:4px;">
+            </label>
+        </div>
+        <label style="display:block;font-weight:600;font-size:12px;margin-top:8px;">
+            <span><?php esc_html_e( 'Method', 'product-costings' ); ?></span>
+            <textarea name="pc_cost[method]" class="pc-cost-field" data-pc-field="method" rows="4" style="width:100%;margin-top:4px;"><?php echo esc_textarea( $this->costing_field_value( $post->ID, 'method' ) ); ?></textarea>
+        </label>
+        <p class="description"><?php esc_html_e( 'Multipliers set price points from the manufacture unit cost (e.g. Cost price 4 → 4× unit cost). Leave “units per batch” blank to auto-calculate from Batch Size ÷ Packaging Size.', 'product-costings' ); ?></p>
+        <?php
+    }
+
+    /**
+     * Save the Costing & Pricing inputs to their plain meta keys.
+     */
+    public function save_costing_meta( $post_id, $post ) {
+        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+            return;
+        }
+        if ( wp_is_post_revision( $post_id ) ) {
+            return;
+        }
+        if ( ! isset( $_POST['pc_costing_nonce'] ) ) {
+            return;
+        }
+        if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['pc_costing_nonce'] ) ), 'pc_save_costing' ) ) {
+            return;
+        }
+        if ( ! current_user_can( 'edit_post', $post_id ) ) {
+            return;
+        }
+
+        $raw = ( isset( $_POST['pc_cost'] ) && is_array( $_POST['pc_cost'] ) ) ? wp_unslash( $_POST['pc_cost'] ) : array();
+
+        $num_keys = array(
+            'batch_size', 'unit_size', 'labour', 'facility_running_costs', 'misc_costs',
+            'packaging_unit_cost', 'packaging_units_per_batch', 'cost_price', 'wholesale', 'rrp',
+        );
+        foreach ( $num_keys as $key ) {
+            if ( ! array_key_exists( $key, $raw ) ) {
+                continue;
+            }
+            $v = trim( (string) $raw[ $key ] );
+            if ( '' === $v ) {
+                delete_post_meta( $post_id, $key );
+            } else {
+                update_post_meta( $post_id, $key, floatval( $v ) );
+            }
+        }
+
+        if ( array_key_exists( 'final_ph', $raw ) ) {
+            $v = sanitize_text_field( $raw['final_ph'] );
+            if ( '' === $v ) {
+                delete_post_meta( $post_id, 'final_ph' );
+            } else {
+                update_post_meta( $post_id, 'final_ph', $v );
+            }
+        }
+        if ( array_key_exists( 'method', $raw ) ) {
+            $v = sanitize_textarea_field( $raw['method'] );
+            if ( '' === $v ) {
+                delete_post_meta( $post_id, 'method' );
+            } else {
+                update_post_meta( $post_id, 'method', $v );
+            }
+        }
     }
 
     /* ───────────────────────────────────────────────

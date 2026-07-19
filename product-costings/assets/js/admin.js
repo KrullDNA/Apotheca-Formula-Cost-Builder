@@ -475,6 +475,13 @@
             $(document).on('input change', '#pc-waste-percent', function () {
                 self.recalcCostSummary();
             });
+
+            // Recalc when any plugin Costing & Pricing field changes (batch
+            // size, packaging, overheads, pH, etc.).
+            $(document).on('input change', '.pc-cost-field', function () {
+                self.recalcCostSummary();
+                self.recalcWarnings();
+            });
         },
 
         /* ──────────────────────────────
@@ -546,6 +553,10 @@
          * ────────────────────────────── */
         getFieldValue: function (fieldName) {
             var val;
+
+            // Prefer the plugin's own Costing & Pricing metabox field.
+            val = $('[data-pc-field="' + fieldName + '"]').val();
+            if (val) return parseFloat(val) || 0;
 
             // Try ACF field wrapper: [data-name="fieldName"] input
             val = $('[data-name="' + fieldName + '"] input').val();

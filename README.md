@@ -57,6 +57,24 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.10
+- Removed the temporary `?pc_debug=1` diagnostic added in 1.11.8 (it did its job:
+  confirming a formula row was linked to the intended trade name). No user-facing change.
+
+### 1.11.9
+- **New "Costing & Pricing" metabox** on the product edit screen — the plugin now owns
+  the product costing inputs instead of relying on external custom fields
+  (JetEngine/ACF): Batch Size, Packaging Size, Labour, Facility Running Costs,
+  Miscellaneous Costs, Packaging unit cost, Packaging units per batch, Cost price /
+  Wholesale / RRP multipliers, Final pH and Method. Values save under the same plain
+  meta keys the calculator already reads (`batch_size`, `labour`, `unit_size`,
+  `cost_price`, …), so existing data carries over — just delete the old external field
+  group. The box's save runs at priority 99 so it wins over a legacy field plugin during
+  the transition, and the live Cost Summary now reads these fields directly.
+- `packaging_units_per_batch` is now honoured as an explicit override of Units per Batch
+  (blank = auto-calculate from Batch Size ÷ Packaging Size), matching the live admin
+  calculation.
+
 ### 1.11.8
 - Diagnostic: logged-in admins can append `?pc_debug=1` to a page URL with the Formula
   Ingredients Table to dump each row's pricing inputs (linked trade name + ID, whether
