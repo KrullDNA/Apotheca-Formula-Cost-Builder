@@ -284,9 +284,26 @@ kg is your negotiating position on annual volume.
 
 ---
 
+### Costing & Pricing box *(new in 1.11.9)*
+
+The plugin now provides its own **Costing & Pricing** metabox on the product edit
+screen, so these inputs no longer need external custom fields (JetEngine/ACF). It holds:
+**Batch Size (kg)**, **Packaging Size (g)**, **Labour**, **Facility Running Costs**,
+**Miscellaneous Costs**, **Packaging unit cost**, **Packaging units per batch** (leave
+blank to auto-calculate from Batch Size ÷ Packaging Size), the **Cost price /
+Wholesale / RRP** multipliers, **Final pH**, and **Method**.
+
+Values are stored under the same plain meta keys used before (`batch_size`, `labour`,
+`facility_running_costs`, `misc_costs`, `packaging_unit_cost`,
+`packaging_units_per_batch`, `unit_size`, `cost_price`, `wholesale`, `rrp`, `final_ph`,
+`method`), so any existing data is picked up automatically. **Migrating from
+JetEngine/ACF:** these fields already show your current values — just delete the old
+external field group; the stored values remain and the plugin box takes over. (Its save
+runs late, so it wins if both exist during the transition.)
+
 ## 4. Cost Summary (on the product edit screen)
 
-Live calculations that update as you edit the formula or the product's cost fields
+Live calculations that update as you edit the formula or the Costing & Pricing fields
 (`batch_size`, `labour`, `facility_running_costs`, `misc_costs`,
 `packaging_unit_cost`, `unit_size`, …):
 
