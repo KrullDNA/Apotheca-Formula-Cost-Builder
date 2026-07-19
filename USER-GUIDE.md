@@ -298,13 +298,14 @@ value you enter is outside it — so you can set a compatible pH at a glance.
 (The **Method** — a WYSIWYG rich-text editor, saved as HTML and shown on the batch sheet
 — lives in the **Formula Ingredients & Method** box, beneath the ingredients table.)
 
-Values are stored under the same plain meta keys used before (`batch_size`, `labour`,
-`facility_running_costs`, `misc_costs`, `packaging_unit_cost`,
-`unit_size`, `cost_price`, `wholesale`, `rrp`, `final_ph`,
-`method`), so any existing data is picked up automatically. **Migrating from
-JetEngine/ACF:** these fields already show your current values — just delete the old
-external field group; the stored values remain and the plugin box takes over. (Its save
-runs late, so it wins if both exist during the transition.)
+The box stores its data in its **own** meta keys (`_pc_cost_batch_size`,
+`_pc_cost_labour`, `_pc_cost_final_ph`, `_pc_cost_method`, …) so it is fully independent
+of JetEngine/ACF — those plugins write the plain keys (`batch_size`, …) and can no
+longer overwrite the plugin's values. **Migrating from JetEngine/ACF:** until you first
+save a product through this box, each field pre-fills from your existing plain-key value
+(so nothing looks blank). The moment you save, the plugin owns that field. Recommended
+flow: open each product, tweak/confirm the numbers, **Update**, then delete the old
+external field group — the plugin's saved values remain.
 
 ## 4. Cost Summary (on the product edit screen)
 

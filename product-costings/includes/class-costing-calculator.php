@@ -146,12 +146,22 @@ class PC_Costing_Calculator {
     }
 
     /**
-     * Read a numeric product meta value from common key patterns.
+     * Read a numeric product costing value.
+     *
+     * The plugin's own field (meta key `_pc_cost_<field>`, set by the Costing &
+     * Pricing box) takes precedence once saved — even when empty — so it is
+     * independent of any legacy custom-field plugin (JetEngine/ACF). Before the
+     * plugin field has been saved, it falls back to the legacy plain / underscore
+     * key, then ACF, so existing data still shows.
      */
     public static function get_product_meta_value( $post_id, $field ) {
-        $variants = array( $field, '_' . $field );
+        $pc_key = '_pc_cost_' . $field;
+        if ( metadata_exists( 'post', $post_id, $pc_key ) ) {
+            $val = get_post_meta( $post_id, $pc_key, true );
+            return ( '' === $val || null === $val ) ? 0 : floatval( $val );
+        }
 
-        foreach ( $variants as $key ) {
+        foreach ( array( $field, '_' . $field ) as $key ) {
             $val = get_post_meta( $post_id, $key, true );
             if ( '' !== $val && null !== $val && false !== $val ) {
                 return floatval( $val );
@@ -169,12 +179,16 @@ class PC_Costing_Calculator {
     }
 
     /**
-     * Read a text product meta value (e.g. method, final_ph) from common key patterns.
+     * Read a text product costing value (e.g. method, final_ph). Same precedence
+     * as get_product_meta_value: the plugin's own `_pc_cost_<field>` first.
      */
     public static function get_product_meta_text( $post_id, $field ) {
-        $variants = array( $field, '_' . $field );
+        $pc_key = '_pc_cost_' . $field;
+        if ( metadata_exists( 'post', $post_id, $pc_key ) ) {
+            return (string) get_post_meta( $post_id, $pc_key, true );
+        }
 
-        foreach ( $variants as $key ) {
+        foreach ( array( $field, '_' . $field ) as $key ) {
             $val = get_post_meta( $post_id, $key, true );
             if ( '' !== $val && null !== $val && false !== $val ) {
                 return $val;

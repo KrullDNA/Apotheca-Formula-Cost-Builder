@@ -57,6 +57,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.15
+- **Fix: Costing & Pricing fields now save their own data.** The box previously wrote to
+  the same plain meta keys as JetEngine/ACF (`batch_size`, …), so those plugins' save
+  handlers overwrote the values and deleting the external field left the box blank. It
+  now stores in dedicated `_pc_cost_*` meta keys that JetEngine/ACF can't touch. Existing
+  values still pre-fill each field until you first save through the box (then the plugin
+  owns it), and the calculator reads the plugin's keys first. Cleared fields stay cleared.
+
 ### 1.11.14
 - The **Final pH** field now shows the formula's **pH compatibility window** inline next
   to its label (e.g. “· compatible 4.5–7.0”), updating live from the ingredients' pH
