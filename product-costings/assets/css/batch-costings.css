@@ -20,6 +20,15 @@
     border-bottom: none;
 }
 
+/* No label: the value fills the row from the left (no reserved label gap). */
+.pc-bc-item--no-label {
+    justify-content: flex-start;
+}
+
+.pc-bc-item--no-label .pc-bc-value {
+    text-align: left;
+}
+
 .pc-bc-label {
     font-weight: 600;
     font-size: 15px;
