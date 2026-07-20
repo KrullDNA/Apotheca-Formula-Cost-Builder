@@ -221,6 +221,13 @@ The smallest pack acts as the minimum purchase (needing 0.5 kg with a 1 kg small
 pack buys 1 kg). The **Batch Size Sweet Spot** panel uses the same logic, so it shows
 exactly where scaling a batch up moves you onto cheaper packs.
 
+**Mixing per-kg breaks and packs *(new in 1.11.17)*.** A material can have both styles
+at once — some rows a Price/kg break, others a Pack price. Costing then combines them:
+it buys the bulk at the per-kg rate and tops up the remainder with the cheapest pack (or
+vice versa), whichever is cheapest overall. E.g. with a `1 kg = $1480/kg` break plus a
+`0.017 kg = $70` pack, covering 1.02 kg buys **1 kg at $1480 + one 0.017 kg pack = $1550**
+— cheaper than any single-scheme option.
+
 **Coverage tolerance *(new in 1.11.6)*.** A purchase may fall up to **0.5%** short of
 the exact kg needed and still count as covering it. This absorbs the tiny rounding that
 comes from converting litre packs to kg, so a cheaper near-exact combination isn't

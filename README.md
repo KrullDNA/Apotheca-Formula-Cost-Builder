@@ -57,6 +57,14 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.17
+- **Mixed pricing now combines schemes.** When a material has both per-kg quantity
+  breaks and pack prices, costing can buy the bulk at the per-kg rate and top up the
+  remainder with the cheapest pack (or vice versa) instead of picking one whole scheme.
+  Example (ALGAKTIV RetinART, 1 kg = $1480/kg per-kg break plus 0.017 kg = $70 packs):
+  1.02 kg now costs **1 kg × $1480 + 1 × 0.017 kg pack = $1550**, not $2720 (two 0.5 kg
+  packs + a top-up). Pure per-kg and pure pack materials are unaffected.
+
 ### 1.11.16
 - **Packaging size can now be g or mL.** A unit dropdown sits next to Packaging Size.
   For **mL** (volume) fills, units per batch account for the product's density: the
