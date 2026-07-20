@@ -56,6 +56,7 @@ class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
             'misc_costs'                  => 'Misc Costs',
             'batch_size'                  => 'Batch Size',
             'batch_size_with_waste'       => 'Batch Size with Waste',
+            'unit_size'                   => 'Packaging Size',
             'natural_origin'              => '% Natural Origin',
         );
     }
@@ -314,7 +315,12 @@ class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
             $override = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
             $label    = '' !== $override ? $override : $labels[ $key ];
 
-            if ( in_array( $key, $kg_suffix, true ) ) {
+            if ( 'unit_size' === $key ) {
+                // Packaging size with its g/ml suffix, no space (e.g. 15g, 30ml).
+                $unit      = ( isset( $values['unit_size_unit'] ) && 'ml' === $values['unit_size_unit'] ) ? 'ml' : 'g';
+                $num       = rtrim( rtrim( number_format( (float) $raw, 3 ), '0' ), '.' );
+                $formatted = $num . $unit;
+            } elseif ( in_array( $key, $kg_suffix, true ) ) {
                 $formatted = number_format( $raw, 0 ) . ' kg';
             } elseif ( in_array( $key, $whole_number, true ) ) {
                 $formatted = number_format( $raw, 0 );

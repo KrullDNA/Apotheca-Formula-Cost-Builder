@@ -120,6 +120,8 @@ class PC_Costing_Calculator {
             'batch_size_with_waste'      => $batch_size,
             'natural_origin'             => $natural_origin,
             'product_sg'                 => $product_sg,
+            'unit_size'                  => $unit_size,
+            'unit_size_unit'             => ( 'ml' === $unit_mode ) ? 'ml' : 'g',
         );
     }
 
