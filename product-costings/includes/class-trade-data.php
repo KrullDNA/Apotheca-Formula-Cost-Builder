@@ -414,80 +414,90 @@ class PC_Trade_Data {
         // doesn't reject a cheaper near-exact purchase (see COVERAGE_TOLERANCE).
         $need_cov = $kg_needed * ( 1 - self::COVERAGE_TOLERANCE );
 
-        // Candidate purchases from each scheme (each covers the need).
-        $perkg_cands = self::perkg_candidates( $perkg, $need_cov );
-        $pack_min    = ! empty( $packs ) ? self::cheapest_pack_combo( $packs, $need_cov ) : null;
-
-        // Strict cheapest cost across both schemes.
-        $min_cost = null;
-        foreach ( $perkg_cands as $c ) {
-            if ( null === $min_cost || $c['cost'] < $min_cost ) {
-                $min_cost = $c['cost'];
-            }
-        }
-        if ( $pack_min && ( null === $min_cost || $pack_min['cost'] < $min_cost ) ) {
-            $min_cost = $pack_min['cost'];
-        }
-
-        if ( null === $min_cost ) {
+        // Strict cheapest covering purchase, combining both schemes.
+        $min = self::combined_best( $perkg, $packs, $need_cov, null );
+        if ( null === $min ) {
             return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
         }
 
         // Free-stock allowance: prefer the greatest quantity whose cost is
         // within the allowance band above the strict cheapest option.
-        $budget = $min_cost * ( 1 + self::get_stock_allowance() );
-
-        $best = null; // Chosen by: greatest quantity within budget, tie → lower cost.
-        foreach ( $perkg_cands as $c ) {
-            if ( $c['cost'] <= $budget + 1e-9 ) {
-                $best = self::pick_more_stock( $best, $c );
-            }
-        }
-        if ( ! empty( $packs ) ) {
-            $pack_pref = self::cheapest_pack_combo( $packs, $need_cov, $budget );
-            if ( $pack_pref ) {
-                $best = self::pick_more_stock( $best, $pack_pref );
-            }
-        }
-
+        $budget = $min['cost'] * ( 1 + self::get_stock_allowance() );
+        $best   = self::combined_best( $perkg, $packs, $need_cov, $budget );
         if ( null === $best ) {
-            // Should not happen (the cheapest option is always within budget).
-            $best = $pack_min;
-            foreach ( $perkg_cands as $c ) {
-                $best = self::pick_cheaper( $best, $c );
-            }
-        }
-
-        if ( null === $best ) {
-            return array( 'qty' => $kg_needed, 'price' => $fallback_price, 'cost' => $kg_needed * $fallback_price );
+            $best = $min;
         }
 
         return array( 'qty' => $best['qty'], 'price' => 0, 'cost' => $best['cost'] );
     }
 
     /**
-     * Candidate per-kg-break purchases covering $need, each rounded up to a
-     * whole multiple of the MOQ increment (smallest break) and priced at the
-     * rate the purchased quantity qualifies for. One candidate per break so
-     * that buying up to a higher, cheaper break is considered.
+     * Best purchase covering $need_cov, combining per-kg breaks and packs so a
+     * material with both can buy the bulk at the per-kg rate and top up the
+     * remainder with the cheapest small pack (or vice versa).
      *
-     * @param array $perkg Sorted array( 'threshold' => float, 'rate' => float ).
-     * @param float $need  Kilograms required.
-     * @return array<int,array{qty:float,cost:float}>
+     * The per-kg part is bought in whole multiples of the smallest break
+     * (k = 0,1,2,…) at the rate that quantity qualifies for; the remainder is
+     * covered by the cheapest pack combination. With $budget null the strict
+     * cheapest is returned; with a $budget the greatest quantity within budget
+     * (free-stock allowance) is returned.
+     *
+     * @param array      $perkg    Sorted array( 'threshold', 'rate' ).
+     * @param array      $packs    Array( 'qty' => kg, 'cost' => total ).
+     * @param float      $need_cov Kilograms to cover.
+     * @param float|null $budget   Max total cost (free-stock pass) or null.
+     * @return array{qty:float,cost:float}|null
      */
-    private static function perkg_candidates( $perkg, $need ) {
-        $out = array();
-        if ( empty( $perkg ) ) {
-            return $out;
+    private static function combined_best( $perkg, $packs, $need_cov, $budget ) {
+        $increment = ! empty( $perkg ) ? $perkg[0]['threshold'] : 0; // Sorted ascending.
+        $has_packs = ! empty( $packs );
+
+        // How many whole per-kg increments to consider: enough to cover the need
+        // alone, and enough to reach the largest break, capped for safety.
+        $max_k = 0;
+        if ( $increment > 0 ) {
+            $max_k    = (int) ceil( $need_cov / $increment ) + 1;
+            $last_thr = $perkg[ count( $perkg ) - 1 ]['threshold'];
+            $max_k    = max( $max_k, (int) ceil( $last_thr / $increment ) );
+            $max_k    = min( $max_k, 2000 );
         }
-        $increment = $perkg[0]['threshold']; // Sorted ascending: smallest = MOQ increment.
-        foreach ( $perkg as $r ) {
-            $target = max( $need, $r['threshold'] );
-            $q      = ( $increment > 0 ) ? ceil( $target / $increment - 1e-9 ) * $increment : $target;
-            $rate   = self::perkg_rate( $perkg, $q );
-            $out[]  = array( 'qty' => $q, 'cost' => $q * $rate );
+
+        $best = null;
+        for ( $k = 0; $k <= $max_k; $k++ ) {
+            $perkg_qty = $k * $increment;
+            $perkg_c   = ( $k > 0 ) ? $perkg_qty * self::perkg_rate( $perkg, $perkg_qty ) : 0;
+            if ( null !== $budget && $perkg_c > $budget + 1e-9 ) {
+                continue;
+            }
+
+            $remainder = $need_cov - $perkg_qty;
+            if ( $remainder <= 1e-9 ) {
+                $cand = array( 'qty' => $perkg_qty, 'cost' => $perkg_c );
+            } else {
+                if ( ! $has_packs ) {
+                    continue; // Need more per-kg to cover; higher k will.
+                }
+                $pack_budget = ( null === $budget ) ? null : ( $budget - $perkg_c );
+                $pack_part   = self::cheapest_pack_combo( $packs, $remainder, $pack_budget );
+                if ( null === $pack_part ) {
+                    continue;
+                }
+                if ( null !== $budget && $pack_part['cost'] > $pack_budget + 1e-9 ) {
+                    continue;
+                }
+                $cand = array(
+                    'qty'  => $perkg_qty + $pack_part['qty'],
+                    'cost' => $perkg_c + $pack_part['cost'],
+                );
+            }
+
+            if ( null === $budget ) {
+                $best = self::pick_cheaper( $best, $cand );
+            } elseif ( $cand['cost'] <= $budget + 1e-9 ) {
+                $best = self::pick_more_stock( $best, $cand );
+            }
         }
-        return $out;
+        return $best;
     }
 
     /**

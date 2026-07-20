@@ -767,28 +767,57 @@
             return pct / 100;
         },
 
-        // Candidate per-kg-break purchases covering `needed`, each rounded up
-        // to a whole MOQ increment. Mirrors PC_Trade_Data::perkg_candidates().
-        perkgCandidates: function (perkg, needed) {
-            var self = this, out = [];
-            if (!perkg.length) { return out; }
+        // Best purchase covering `needCov`, combining per-kg breaks with packs
+        // (buy the bulk at the per-kg rate, top up the remainder with the
+        // cheapest pack). budget null → strict cheapest; budget set → greatest
+        // quantity within budget. Mirrors PC_Trade_Data::combined_best().
+        combinedBest: function (perkg, packs, needCov, budget) {
+            var self = this;
             var sorted = perkg.slice().sort(function (a, b) {
                 return (parseFloat(a.threshold) || 0) - (parseFloat(b.threshold) || 0);
             });
-            var increment = parseFloat(sorted[0].threshold) || 0;
-            sorted.forEach(function (r) {
-                var target = Math.max(needed, parseFloat(r.threshold) || 0);
-                var q = (increment > 0) ? Math.ceil(target / increment - 1e-9) * increment : target;
-                out.push({ qty: q, cost: q * self.perkgRate(sorted, q) });
-            });
-            return out;
+            var increment = sorted.length ? (parseFloat(sorted[0].threshold) || 0) : 0;
+            var hasPacks  = packs.length > 0;
+
+            var maxK = 0;
+            if (increment > 0) {
+                maxK = Math.ceil(needCov / increment) + 1;
+                var lastThr = parseFloat(sorted[sorted.length - 1].threshold) || 0;
+                maxK = Math.max(maxK, Math.ceil(lastThr / increment));
+                maxK = Math.min(maxK, 2000);
+            }
+
+            var best = null;
+            for (var k = 0; k <= maxK; k++) {
+                var perkgQty = k * increment;
+                var perkgC   = (k > 0) ? perkgQty * self.perkgRate(sorted, perkgQty) : 0;
+                if (budget !== null && perkgC > budget + 1e-9) { continue; }
+
+                var remainder = needCov - perkgQty;
+                var cand;
+                if (remainder <= 1e-9) {
+                    cand = { qty: perkgQty, cost: perkgC };
+                } else {
+                    if (!hasPacks) { continue; }
+                    var packBudget = (budget === null) ? null : (budget - perkgC);
+                    var packPart = self.cheapestPackCombo(packs, remainder, packBudget);
+                    if (!packPart) { continue; }
+                    if (budget !== null && packPart.cost > packBudget + 1e-9) { continue; }
+                    cand = { qty: perkgQty + packPart.qty, cost: perkgC + packPart.cost };
+                }
+
+                if (budget === null) {
+                    best = self.pickCheaper(best, cand);
+                } else if (cand.cost <= budget + 1e-9) {
+                    best = self.pickMoreStock(best, cand);
+                }
+            }
+            return best;
         },
 
         // Cheapest purchase to obtain at least `needed` kg → { qty, cost }.
-        // Finds the strict cheapest across per-kg breaks and pack combinations,
-        // then applies the free-stock allowance: the greatest quantity whose
-        // cost is within (cheapest × (1 + allowance)) wins. Mirrors
-        // PC_Trade_Data::cheapest_purchase().
+        // Combines both pricing schemes, then applies the free-stock allowance.
+        // Mirrors PC_Trade_Data::cheapest_purchase().
         purchaseDetail: function (tiers, needed, fallback) {
             needed = Math.max(0, needed);
             var fb = parseFloat(fallback) || 0;
@@ -800,35 +829,17 @@
             }
             if (needed <= 0) { return { qty: 0, cost: 0 }; }
 
-            var self = this;
-
             // Coverage target: allow a tiny shortfall so unit-conversion / whole-
             // gram rounding doesn't reject a cheaper near-exact purchase. Mirrors
             // PC_Trade_Data::COVERAGE_TOLERANCE.
             var needCov = needed * (1 - 0.005);
 
-            var perkgCands = this.perkgCandidates(perkg, needCov);
-            var packMin = packs.length ? this.cheapestPackCombo(packs, needCov) : null;
+            var min = this.combinedBest(perkg, packs, needCov, null);
+            if (!min) { return { qty: needed, cost: needed * fb }; }
 
-            var minCost = null;
-            perkgCands.forEach(function (c) {
-                if (minCost === null || c.cost < minCost) { minCost = c.cost; }
-            });
-            if (packMin && (minCost === null || packMin.cost < minCost)) { minCost = packMin.cost; }
-            if (minCost === null) { return { qty: needed, cost: needed * fb }; }
-
-            var budget = minCost * (1 + this.stockAllowance());
-
-            var best = null;
-            perkgCands.forEach(function (c) {
-                if (c.cost <= budget + 1e-9) { best = self.pickMoreStock(best, c); }
-            });
-            if (packs.length) {
-                var packPref = this.cheapestPackCombo(packs, needCov, budget);
-                if (packPref) { best = this.pickMoreStock(best, packPref); }
-            }
-
-            return best || { qty: needed, cost: needed * fb };
+            var budget = min.cost * (1 + this.stockAllowance());
+            var best = this.combinedBest(perkg, packs, needCov, budget);
+            return best || min;
         },
 
         cheapestPackCombo: function (packsIn, needed, budget) {
