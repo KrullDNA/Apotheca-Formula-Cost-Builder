@@ -311,10 +311,13 @@ class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
                 continue;
             }
 
-            $raw       = $values[ $key ];
-            $override  = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
-            $label     = '' !== $override ? $override : $labels[ $key ];
-            $has_label = ( '' !== trim( $label ) ); // A blank/space label hides it (value fills the row).
+            $raw      = $values[ $key ];
+            $override = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
+            $label    = '' !== $override ? $override : $labels[ $key ];
+            // A blank label — spaces, a non-breaking space, or a literal &nbsp; —
+            // hides the label so the value fills the row.
+            $label_clean = str_replace( array( '&nbsp;', "\xC2\xA0" ), '', (string) $label );
+            $has_label   = ( '' !== trim( $label_clean ) );
 
             if ( 'unit_size' === $key ) {
                 // Packaging size with its g/ml suffix, no space (e.g. 15g, 30ml).

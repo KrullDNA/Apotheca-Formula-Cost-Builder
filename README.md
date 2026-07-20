@@ -57,6 +57,10 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.20
+- Batch Costings widget: a label of a non-breaking space (or literal `&nbsp;`) now also
+  counts as blank and hides the label, matching a plain space.
+
 ### 1.11.19
 - Batch Costings widget: a **blank (or space) label** now hides the label entirely and
   lets the value fill the row from the left, instead of leaving a large gap where the
