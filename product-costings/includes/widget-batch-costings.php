@@ -311,9 +311,10 @@ class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
                 continue;
             }
 
-            $raw      = $values[ $key ];
-            $override = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
-            $label    = '' !== $override ? $override : $labels[ $key ];
+            $raw       = $values[ $key ];
+            $override  = ! empty( $settings[ 'label_' . $key ] ) ? $settings[ 'label_' . $key ] : '';
+            $label     = '' !== $override ? $override : $labels[ $key ];
+            $has_label = ( '' !== trim( $label ) ); // A blank/space label hides it (value fills the row).
 
             if ( 'unit_size' === $key ) {
                 // Packaging size with its g/ml suffix, no space (e.g. 15g, 30ml).
@@ -332,8 +333,10 @@ class PC_Widget_Batch_Costings extends \Elementor\Widget_Base {
                 $formatted = $currency . number_format( $raw, 2 );
             }
 
-            echo '<div class="pc-bc-item">';
-            echo '<span class="pc-bc-label">' . esc_html( $label ) . '</span>';
+            echo '<div class="pc-bc-item' . ( $has_label ? '' : ' pc-bc-item--no-label' ) . '">';
+            if ( $has_label ) {
+                echo '<span class="pc-bc-label">' . esc_html( $label ) . '</span>';
+            }
             echo '<span class="pc-bc-value">';
             if ( '' !== $prefix ) {
                 echo '<span class="pc-bc-prefix">' . esc_html( $prefix ) . ' </span>';

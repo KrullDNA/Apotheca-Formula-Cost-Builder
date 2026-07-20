@@ -57,6 +57,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.19
+- Batch Costings widget: a **blank (or space) label** now hides the label entirely and
+  lets the value fill the row from the left, instead of leaving a large gap where the
+  label would be.
+
 ### 1.11.18
 - Batch Costings widget: new **Packaging Size** calculation option, shown as the number
   with its unit suffix and no space (e.g. `15g` or `30ml`, matching the g/mL choice on
