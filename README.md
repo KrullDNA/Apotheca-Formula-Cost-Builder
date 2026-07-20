@@ -57,6 +57,11 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.18
+- Batch Costings widget: new **Packaging Size** calculation option, shown as the number
+  with its unit suffix and no space (e.g. `15g` or `30ml`, matching the g/mL choice on
+  the product).
+
 ### 1.11.17
 - **Mixed pricing now combines schemes.** When a material has both per-kg quantity
   breaks and pack prices, costing can buy the bulk at the per-kg rate and top up the
