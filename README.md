@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.22
+- Bulk Pricing: the **Specific Gravity** field is no longer greyed out when no litre
+  price break exists. SG is now also used to estimate a product's density for mL-filled
+  packaging, so it's editable on every ingredient. The hint turns red only when a litre
+  break needs an SG that hasn't been entered.
+
 ### 1.11.21
 - **New "Formula Method" Elementor widget.** Displays a product's Method (the WYSIWYG
   content from the Formula Ingredients & Method box) on the front end, with an optional
