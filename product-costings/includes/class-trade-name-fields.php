@@ -72,7 +72,7 @@ class PC_Trade_Name_Fields {
                 <strong><?php esc_html_e( 'Specific Gravity (kg/L)', 'product-costings' ); ?></strong>
                 <input type="number" step="any" min="0" id="pc-specific-gravity" name="pc_specific_gravity" value="<?php echo esc_attr( $sg ? $sg : '' ); ?>" style="width:100px;" placeholder="0.95">
             </label>
-            <span class="description" id="pc-sg-note"><?php esc_html_e( 'Density relative to water. Required to convert litre pricing to per-kg. Becomes active when any price break uses L.', 'product-costings' ); ?></span>
+            <span class="description" id="pc-sg-note"><?php esc_html_e( 'Density relative to water (e.g. 0.95). Used to convert litre pricing to per-kg, and to estimate the finished product\'s density for mL-filled packaging. Worth setting on every ingredient.', 'product-costings' ); ?></span>
         </p>
         <table class="widefat striped" id="pc-price-tier-table" style="max-width:720px;">
             <thead>
@@ -198,14 +198,11 @@ class PC_Trade_Name_Fields {
 
                 $('#pc-tier-both-warning').toggle(anyBoth);
 
-                // Specific Gravity field only active when a litre break exists.
-                if (anyL) {
-                    $sg.prop('readonly', false).css({opacity: 1});
-                    $('#pc-sg-note').css('color', sg > 0 ? '' : '#d63638');
-                } else {
-                    $sg.prop('readonly', true).css({opacity: 0.5});
-                    $('#pc-sg-note').css('color', '');
-                }
+                // SG converts litre pricing to per-kg AND estimates product
+                // density for mL-filled products, so it stays editable. Flag the
+                // note red only when a litre break needs it but it's still blank.
+                $sg.prop('readonly', false).css({ opacity: 1 });
+                $('#pc-sg-note').css('color', (anyL && !(sg > 0)) ? '#d63638' : '');
             }
 
             $('#pc-tier-add').on('click', function () {
