@@ -18,8 +18,10 @@ function pc_register_elementor_widget( $widgets_manager ) {
     require_once __DIR__ . '/widget-formula-table.php';
     require_once __DIR__ . '/widget-batch-costings.php';
     require_once __DIR__ . '/widget-inci-list.php';
+    require_once __DIR__ . '/widget-formula-method.php';
     $widgets_manager->register( new \PC_Widget_Formula_Table() );
     $widgets_manager->register( new \PC_Widget_Batch_Costings() );
     $widgets_manager->register( new \PC_Widget_INCI_List() );
+    $widgets_manager->register( new \PC_Widget_Formula_Method() );
 }
 add_action( 'elementor/widgets/register', 'pc_register_elementor_widget' );
