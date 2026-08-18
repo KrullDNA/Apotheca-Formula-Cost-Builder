@@ -57,6 +57,12 @@ Upload the zip via **Plugins → Add New → Upload Plugin**.
 
 ## Changelog
 
+### 1.11.21
+- **New "Formula Method" Elementor widget.** Displays a product's Method (the WYSIWYG
+  content from the Formula Ingredients & Method box) on the front end, with an optional
+  heading (toggle, custom text and HTML tag), an empty-state message, and Elementor
+  typography/colour/alignment controls. Uses the current product or an entered Product ID.
+
 ### 1.11.20
 - Batch Costings widget: a label of a non-breaking space (or literal `&nbsp;`) now also
   counts as blank and hides the label, matching a plain space.
